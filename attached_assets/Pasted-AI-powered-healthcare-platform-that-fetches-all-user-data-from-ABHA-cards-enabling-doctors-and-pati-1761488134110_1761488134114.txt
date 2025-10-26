@@ -1,0 +1,21 @@
+AI-powered healthcare platform that fetches all user data from ABHA cards, enabling doctors and patients to manage health records with multilingual AI chatbot, diagnosis assistance, and consent-based record sharing
+I'll include the following features:
+
+ABHA-based authentication - Users login/register using ABHA ID with Aadhaar OTP, fetch all profile data from ABHA system
+Auto-populate user profiles from ABHA - Name, DOB, gender, mobile, email, address automatically fetched via ABHA Profile API
+Role-based profile completion - After ABHA login, users select role (Doctor/Patient/Pharmacy) and add role-specific details only
+Doctor profile extension - Add specialization, experience, hospital/clinic name, HPR ID (Health Professional Registry)
+Patient profile extension - Medical conditions, allergies, emergency contacts auto-linked to ABHA health records
+Pharmacy profile extension - License number, location, operating hours, medicine stock database
+Doctor Dashboard - Search and view patients by ABHA ID, see complete ABHA-linked health history and records
+AI-powered Digital Prescription System - Generate prescriptions with AI drug interaction checks, auto-share via ABHA consent system
+Patient Dashboard - Timeline view of all ABHA health records, prescriptions, lab reports with AI-generated summaries
+AI Multilingual Health Chatbot - Answer health questions in English/Hindi/Marathi, explain medical reports and prescriptions using OpenAI
+AI Diagnosis Assistant - Doctors input symptoms, AI suggests conditions, recommended tests, and treatment options based on medical databases
+ABHA Consent-Based Record Sharing - Patients grant consent for doctors to access their complete ABHA health history
+Medicine & Appointment Reminders - Smart AI-scheduled notifications based on prescription data and appointment history
+Pharmacy Prescription Verification - Scan QR codes from ABHA-signed prescriptions, verify authenticity, update dispensed status
+Firebase Firestore Database - Store app-specific data (prescriptions, reminders, chat history) synced with ABHA records
+Real-time Doctor-Patient Chat - Secure messaging with AI translation between English, Hindi, and Marathi
+Health Analytics Dashboard - AI visualizations showing patient trends, disease patterns, risk predictions from ABHA data
+Emergency SOS System - One-click alert with ABHA profile, vitals, location sent to nearest registered hospitals
