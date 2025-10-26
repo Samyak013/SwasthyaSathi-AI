@@ -1,0 +1,43 @@
+BUILD THE FULL PROJECT (production-ready prototype)
+
+Create a complete full-stack healthcare web app (mobile-first PWA like Instagram/Facebook) with ABHA (ABDM) integration. Use React + Vite + TailwindCSS for frontend and Node.js + Express for backend. Do NOT use Replit Auth or Replit storage — use custom auth and environment variables. Commit the full working project into the Replit workspace and provide a clear README + .env.example.
+
+DELIVERABLES:
+1. Two top-level folders: /frontend (Vite + React + Tailwind) and /backend (Express).
+2. Frontend:
+   - Mobile-first responsive design with bottom nav (Dashboard, Appointments, Prescriptions, Profile).
+   - Role-based UI flows for Doctor, Patient, Pharmacy (login screen selects role).
+   - Doctor dashboard: daily patient count, ABHA ID search (calls backend), patient list, prescription composer, chatbot widget (placeholder API), appointments calendar, teleconsultation placeholder UI.
+   - Patient dashboard: ABHA-linked profile, health records list (mocked initially), consent manager UI, appointment booking, forward prescription button.
+   - Pharmacy dashboard: incoming prescriptions list, ABHA ID verify flow (calls backend), stock view with basic CRUD.
+   - Include sample mobile UI screens and prepopulated demo accounts (doctor/patient/pharmacy) for testing.
+3. Backend:
+   - Express server with structured routes: /api/auth, /api/doctor, /api/patient, /api/pharmacy.
+   - JWT-based auth (login/signup per role). Sessions stored server-side in memory for prototype; show how to swap to DB.
+   - ABHA integration module: abstracted service file that contains functions for ABHA actions (createABHA, fetchPatientByABHA, consentRequest, uploadPrescription, pushDispensation). Implement these with working mocks and clearly marked placeholders (URL & token) with instructions at top to replace with real ABHA sandbox GitHub endpoints and env keys.
+   - Endpoints to support frontend needs: search patient by ABHA, create prescription, fetch prescriptions, pharmacy verify & dispensed.
+   - A chatbot endpoint that returns sample summaries; comment where to plug a real LLM/chat API.
+4. Environment and docs:
+   - .env.example with variables (JWT_SECRET, ABHA_API_URL, ABHA_TOKEN, PORT).
+   - README with setup steps (install, run backend, run frontend, example requests), API docs (endpoints, payloads), and instructions for replacing mock ABHA with real ABDM sandbox GitHub APIs.
+   - Provide Postman collection or curl examples for key flows.
+5. Dev ergonomics:
+   - npm scripts: frontend: `npm run dev`, backend: `npm run dev`, root script to concurrently start both (`npm run start:dev`).
+   - Dockerfile for backend and Dockerfile for frontend + docker-compose.yml (optional) or instructions to containerize.
+   - Basic unit tests for one backend route and one frontend component (jest/react-testing-library).
+6. Security & structure:
+   - Store secrets in .env and never hardcode tokens.
+   - Clear folder structure and comments where to replace mock code with ABDM real calls.
+
+MUST-HAVES:
+- Every ABHA/ABDM related call must be centralized in one backend module (`/backend/services/abhaService.js`) with comments and placeholders for GitHub sandbox endpoints and token.
+- Create 3 demo user logins and sample data to test flows without real ABHA keys.
+- Generate a concise architecture diagram (PNG or ASCII) in the repo root that shows dataflow: Frontend ↔ Backend ↔ ABHA (Consent Manager/HIP/HIU) ↔ Pharmacy.
+- Add instructions for how to switch mock ABHA to real ABHA sandbox (example axios call and expected response shapes).
+- Commit everything to the Replit project and place a generated ZIP link in the workspace.
+
+BUILD it now and give me:
+- 1) link to the Replit project (workspace)
+- 2) README usage steps
+- 3) the demo credentials (role/email/password)
+- 4) short list of files to check first (entrypoints)
