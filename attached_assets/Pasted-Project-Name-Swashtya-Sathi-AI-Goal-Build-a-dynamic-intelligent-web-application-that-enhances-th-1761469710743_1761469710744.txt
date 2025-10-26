@@ -1,0 +1,205 @@
+Project Name: Swashtya Sathi AI
+Goal: Build a dynamic, intelligent web application that enhances the Indian ABHA system by connecting patients, doctors, hospitals, and pharmacies on one platform with AI-driven insights, multilingual chatbot support, and secure digital record management.
+
+🚀 Core Objective
+
+Create a real-time, multilingual AI-powered digital healthcare ecosystem where:
+
+Doctors can manage all their patients, view health analytics, and issue digital prescriptions.
+
+Patients can view their full health history, receive AI-driven insights, interact with a multilingual chatbot, and get reminders for medicines and appointments.
+
+Pharmacies can access doctor-signed prescriptions digitally (with consent).
+
+All data links securely to real ABHA records via NHA APIs.
+
+AI models provide diagnosis assistance, health prediction, and chatbot understanding in multiple languages (English, Hindi, Marathi, etc.).
+
+🩺 System Roles and Features
+👨‍⚕️ Doctor Dashboard
+
+Patient Management System
+
+View all registered patients linked via ABHA ID.
+
+Search by patient name, ABHA ID, or phone number.
+
+View patient’s medical history, reports, lab results, and previous prescriptions.
+
+AI insights section showing:
+
+Health risk predictions.
+
+Disease trend analysis.
+
+Lifestyle recommendations based on EHR data.
+
+AI-Assisted Diagnosis
+
+Doctor can input symptoms → AI suggests possible conditions, tests, and treatment guidelines.
+
+Model trained using open health datasets and enhanced through continuous learning.
+
+Digital Prescription Creator
+
+Doctor can generate and sign a digital prescription (with a unique prescription ID).
+
+Automatically shared with:
+
+The patient’s dashboard.
+
+The linked pharmacy portal (for medicine fulfillment).
+
+Stored securely with timestamp and doctor ID.
+
+Doctor Analytics
+
+View patient statistics, number of consultations, and recovery analytics.
+
+AI visual dashboard: common diseases, seasonal trends, recovery rates.
+
+Chat with Patient
+
+Secure message system (end-to-end encrypted).
+
+Optional AI translation so doctor sees message in preferred language.
+
+🧍‍♂️ Patient Dashboard
+
+Health Record Viewer
+
+View full health history (ABHA-linked + digital prescriptions).
+
+Display in timeline view with AI insights summary.
+
+AI Multilingual Chatbot
+
+Patient can ask health-related questions in any language (Marathi, Hindi, English).
+
+Chatbot provides:
+
+Explanation of lab results.
+
+Medicine info & precautions.
+
+Next appointment reminders.
+
+Health tips based on their conditions.
+
+Reminders & Notifications
+
+Medicine reminders with push notifications.
+
+Appointment reminders (doctor visits, tests, etc.).
+
+Health check-up alerts (AI-scheduled).
+
+Prescription Access
+
+View and download digital prescriptions.
+
+Option to directly share with pharmacy for delivery.
+
+Emergency Help
+
+SOS button sends patient details + location + last vitals to nearest hospital.
+
+🏥 Pharmacy / Hospital Portal
+
+Verify prescriptions digitally (QR / hash validation).
+
+Update stock / medicine availability.
+
+Generate delivery reports and update patient status.
+
+🤖 AI Components
+
+Health Prediction Engine
+
+Predicts disease probability based on patient EHR, lifestyle, and past data.
+
+Chatbot AI
+
+Uses multilingual NLP (Google Translate API + OpenAI / Gemini model).
+
+Understands health-related questions and gives AI-driven answers.
+
+Prescription Validation AI
+
+Detects drug interactions and alerts doctor.
+
+Patient Trend Analytics
+
+Identifies abnormal trends and notifies doctor.
+
+💬 Languages
+
+English
+
+Hindi
+
+Marathi
+(Extendable to any Indian language using multilingual NLP)
+
+🗄️ Backend Structure (FastAPI + PostgreSQL)
+Tables:
+
+users (id, name, role, abha_id, phone, email, password_hash)
+
+patient_profile (user_id, dob, gender, conditions, allergies)
+
+doctor_profile (user_id, specialization, experience, hospital)
+
+ehr_records (id, user_id, type, file_url, metadata, date)
+
+prescriptions (id, doctor_id, patient_id, prescription_text, date, signature_hash)
+
+appointments (id, patient_id, doctor_id, date, status)
+
+reminders (id, patient_id, type, message, time)
+
+chat_messages (id, sender_id, receiver_id, message, translated_text, timestamp)
+
+💻 Frontend (React + Tailwind)
+
+Login / Signup (with ABHA linking)
+
+Doctor Dashboard: Patient list, analytics, prescription page.
+
+Patient Dashboard: Chatbot, reminders, medical history timeline.
+
+Pharmacy Portal: Verify prescriptions, update status.
+
+Admin Portal: Monitor usage, data reports.
+
+🔐 Security & Compliance
+
+Use JWT authentication and role-based access control.
+
+AES-256 encryption for medical files.
+
+Consent-based sharing — patient must approve sharing with doctor/pharmacy.
+
+ABHA API integration only through authorized keys.
+
+Full audit logs for all actions.
+
+GDPR & Indian Data Protection compliance.
+
+🧰 Tech Stack
+
+Frontend: React.js + TailwindCSS + Chart.js
+
+Backend: FastAPI (Python)
+
+Database: PostgreSQL
+
+AI/NLP: Python (scikit-learn, transformers, OpenAI API / Gemini API for multilingual)
+
+Realtime: WebSockets (FastAPI + Socket.io)
+
+Notifications: Twilio / Firebase Cloud Messaging
+
+Deployment: Replit (dev) → AWS / Azure (prod)
+
+Version Control: GitHub integration for CI/CD
