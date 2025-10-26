@@ -4,10 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import abhaCardImage from "@assets/generated_images/ABHA_health_card_mockup_2960ffc1.png";
 
 interface ABHALoginProps {
-  onLogin?: (abhaId: string, method: string) => void;
+  onLogin?: (userData: any) => void;
 }
 
 export default function ABHALogin({ onLogin }: ABHALoginProps) {
@@ -15,25 +17,91 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
   const [aadhaar, setAadhaar] = useState("");
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState<"input" | "otp">("input");
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleAbhaLogin = () => {
-    if (abhaId) {
+  const handleAbhaLogin = async () => {
+    if (!abhaId) return;
+    
+    setLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/auth/send-otp", { abhaId });
+      const data = await response.json();
+      
       setStep("otp");
-      console.log("ABHA login initiated:", abhaId);
+      toast({
+        title: "OTP Sent",
+        description: data.message || "A 6-digit OTP has been sent to your registered mobile number. Check server console for OTP.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleAadhaarLogin = () => {
-    if (aadhaar) {
+  const handleAadhaarLogin = async () => {
+    if (!aadhaar) return;
+    
+    setLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/auth/send-otp", { abhaId: aadhaar });
+      const data = await response.json();
+      
       setStep("otp");
-      console.log("Aadhaar login initiated:", aadhaar);
+      toast({
+        title: "OTP Sent",
+        description: data.message || "A 6-digit OTP has been sent to your registered mobile number. Check server console for OTP.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send OTP",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleVerifyOtp = () => {
-    if (otp) {
-      onLogin?.(abhaId || aadhaar, step);
-      console.log("OTP verified:", otp);
+  const handleVerifyOtp = async () => {
+    if (!otp || otp.length !== 6) {
+      toast({
+        title: "Invalid OTP",
+        description: "Please enter a valid 6-digit OTP",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await apiRequest("POST", "/api/auth/verify-otp", {
+        abhaId: abhaId || aadhaar,
+        otp,
+      });
+
+      const data = await response.json();
+      
+      toast({
+        title: "Login Successful",
+        description: `Welcome, ${data.user.name}!`,
+      });
+
+      onLogin?.(data);
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid OTP. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,13 +123,27 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
               value={otp}
               onChange={(e) => setOtp(e.target.value)}
               data-testid="input-otp"
+              disabled={loading}
             />
+            <p className="text-sm text-muted-foreground">
+              Check the server console logs for the OTP
+            </p>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleVerifyOtp} className="flex-1" data-testid="button-verify-otp">
-              Verify & Login
+            <Button 
+              onClick={handleVerifyOtp} 
+              className="flex-1" 
+              data-testid="button-verify-otp"
+              disabled={loading}
+            >
+              {loading ? "Verifying..." : "Verify & Login"}
             </Button>
-            <Button variant="outline" onClick={() => setStep("input")} data-testid="button-back">
+            <Button 
+              variant="outline" 
+              onClick={() => setStep("input")} 
+              data-testid="button-back"
+              disabled={loading}
+            >
               Back
             </Button>
           </div>
@@ -90,17 +172,25 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
             </TabsList>
             <TabsContent value="abha" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="abha-id">ABHA ID or ABHA Address</Label>
+                <Label htmlFor="abha-id">ABHA ID</Label>
                 <Input
                   id="abha-id"
-                  placeholder="yourname@abdm or 22-1234-5678-9012"
+                  placeholder="22-1234-5678-9012"
                   value={abhaId}
                   onChange={(e) => setAbhaId(e.target.value)}
                   data-testid="input-abha-id"
                 />
+                <p className="text-sm text-muted-foreground">
+                  Demo IDs: 22-1234-5678-9012 (Doctor) | 22-1111-2222-3333 (Patient)
+                </p>
               </div>
-              <Button onClick={handleAbhaLogin} className="w-full" data-testid="button-login-abha">
-                Send OTP
+              <Button 
+                onClick={handleAbhaLogin} 
+                className="w-full" 
+                data-testid="button-login-abha"
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send OTP"}
               </Button>
             </TabsContent>
             <TabsContent value="aadhaar" className="space-y-4">
@@ -116,31 +206,25 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
                   data-testid="input-aadhaar"
                 />
               </div>
-              <Button onClick={handleAadhaarLogin} className="w-full" data-testid="button-login-aadhaar">
-                Send OTP
+              <Button 
+                onClick={handleAadhaarLogin} 
+                className="w-full" 
+                data-testid="button-login-aadhaar"
+                disabled={loading}
+              >
+                {loading ? "Sending..." : "Send OTP"}
               </Button>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
 
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <span className="w-full border-t" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-background px-2 text-muted-foreground">What is ABHA?</span>
-        </div>
+      <div className="text-center">
+        <img src={abhaCardImage} alt="ABHA Card" className="mx-auto w-64 rounded-lg shadow-md" />
+        <p className="text-sm text-muted-foreground mt-4">
+          Powered by Ayushman Bharat Digital Mission
+        </p>
       </div>
-
-      <Card>
-        <CardContent className="pt-6">
-          <img src={abhaCardImage} alt="ABHA Card" className="w-full rounded-lg mb-3" />
-          <p className="text-sm text-muted-foreground">
-            ABHA (Ayushman Bharat Health Account) is India's digital health ID that enables secure access to your medical records across all healthcare providers.
-          </p>
-        </CardContent>
-      </Card>
     </div>
   );
 }

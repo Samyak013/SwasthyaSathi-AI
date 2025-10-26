@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User as UserIcon, Languages } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
 
 interface Message {
   id: string;
@@ -16,22 +19,71 @@ interface Message {
 }
 
 interface AIChatbotProps {
-  onSendMessage?: (message: string, language: string) => void;
+  userId?: string;
 }
 
-export default function AIChatbot({ onSendMessage }: AIChatbotProps) {
+export default function AIChatbot({ userId }: AIChatbotProps) {
   const [messages, setMessages] = useState<Message[]>([
-    //todo: remove mock functionality
     {
       id: "1",
       role: "assistant",
       content: "Hello! I'm your AI health assistant. How can I help you today?",
-      language: "English",
-      timestamp: "10:00 AM",
+      language: "en",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState("en");
+  const { toast } = useToast();
+
+  const { data: chatHistory } = useQuery({
+    queryKey: ["/api/ai-chat/history", userId],
+    enabled: !!userId,
+  });
+
+  useEffect(() => {
+    if (chatHistory && Array.isArray(chatHistory)) {
+      const formattedMessages = chatHistory.map((msg: any) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.message,
+        language: msg.language,
+        timestamp: new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      }));
+      
+      if (formattedMessages.length > 0) {
+        setMessages(formattedMessages);
+      }
+    }
+  }, [chatHistory]);
+
+  const chatMutation = useMutation({
+    mutationFn: async ({ message, language }: { message: string; language: string }) => {
+      const response = await apiRequest("POST", "/api/ai-chat", {
+        userId: userId || "guest",
+        message,
+        language,
+      });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.message,
+        language,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, aiMessage]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to get response from AI",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleSend = () => {
     if (!input.trim()) return;
@@ -44,21 +96,11 @@ export default function AIChatbot({ onSendMessage }: AIChatbotProps) {
       timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     };
 
-    setMessages([...messages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
+    const messageText = input;
     setInput("");
-    onSendMessage?.(input, language);
-
-    //todo: remove mock functionality
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: "I understand your concern. Based on your question, I recommend consulting with your doctor for a proper evaluation.",
-        language,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      };
-      setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
+    
+    chatMutation.mutate({ message: messageText, language });
   };
 
   return (
@@ -115,6 +157,24 @@ export default function AIChatbot({ onSendMessage }: AIChatbotProps) {
                 </div>
               </div>
             ))}
+            {chatMutation.isPending && (
+              <div className="flex gap-3">
+                <Avatar className="w-8 h-8">
+                  <AvatarFallback className="bg-primary/10">
+                    <Bot className="w-4 h-4 animate-pulse" />
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col gap-1 max-w-[70%]">
+                  <div className="p-3 rounded-lg bg-muted">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce" />
+                      <div className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce delay-100" />
+                      <div className="w-2 h-2 bg-foreground/30 rounded-full animate-bounce delay-200" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
         <div className="p-4 border-t">
@@ -123,10 +183,16 @@ export default function AIChatbot({ onSendMessage }: AIChatbotProps) {
               placeholder="Ask about your health..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSend()}
+              onKeyDown={(e) => e.key === "Enter" && !chatMutation.isPending && handleSend()}
+              disabled={chatMutation.isPending}
               data-testid="input-message"
             />
-            <Button onClick={handleSend} size="icon" data-testid="button-send">
+            <Button 
+              onClick={handleSend} 
+              size="icon" 
+              data-testid="button-send"
+              disabled={chatMutation.isPending || !input.trim()}
+            >
               <Send className="w-4 h-4" />
             </Button>
           </div>

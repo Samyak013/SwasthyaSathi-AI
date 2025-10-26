@@ -31,9 +31,17 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   
-  const wss = new WebSocketServer({ server: httpServer });
+  const wss = new WebSocketServer({ noServer: true });
 
   const connectedClients = new Map<string, any>();
+
+  httpServer.on('upgrade', (request, socket, head) => {
+    if (request.url === '/ws') {
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        wss.emit('connection', ws, request);
+      });
+    }
+  });
 
   wss.on("connection", (ws) => {
     let userId: string | null = null;
@@ -140,11 +148,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/send-otp", async (req, res) => {
     try {
       const { abhaId } = req.body;
       const user = await storage.getUserByAbhaId(abhaId);
       
+      if (!user) {
+        return res.status(404).json({ message: "User not found with this ABHA ID" });
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      await storage.storeOTP(abhaId, otp);
+
+      console.log(`OTP for ${abhaId}: ${otp}`);
+      
+      res.json({ success: true, message: "OTP sent successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message });
+    }
+  });
+
+  app.post("/api/auth/verify-otp", async (req, res) => {
+    try {
+      const { abhaId, otp } = req.body;
+      
+      const isValid = await storage.verifyOTP(abhaId, otp);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid or expired OTP" });
+      }
+
+      const user = await storage.getUserByAbhaId(abhaId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
@@ -244,7 +277,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/prescriptions/patient/:patientId", async (req, res) => {
     try {
       const prescriptions = await storage.getPrescriptionsByPatientId(req.params.patientId);
-      res.json(prescriptions);
+      const enrichedPrescriptions = await Promise.all(
+        prescriptions.map(async (prescription) => {
+          let doctorName = "Unknown Doctor";
+          let doctorSpecialization = "";
+          if (prescription.doctorId) {
+            const doctor = await storage.getUser(prescription.doctorId);
+            if (doctor) {
+              doctorName = doctor.name;
+              const doctorProfile = await storage.getDoctorByUserId(doctor.id);
+              if (doctorProfile) {
+                doctorSpecialization = doctorProfile.specialization;
+              }
+            }
+          }
+          return {
+            ...prescription,
+            doctorName,
+            doctorSpecialization,
+            prescriptionDate: prescription.createdAt,
+            prescriptionId: prescription.qrCode || prescription.id,
+            verificationStatus: prescription.dispensedAt ? "verified" : "pending",
+            medicines: prescription.medications,
+          };
+        })
+      );
+      res.json(enrichedPrescriptions);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }
@@ -312,7 +370,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/health-records/patient/:patientId", async (req, res) => {
     try {
       const records = await storage.getHealthRecordsByPatientId(req.params.patientId);
-      res.json(records);
+      const enrichedRecords = await Promise.all(
+        records.map(async (record) => {
+          let doctorName = "Unknown Doctor";
+          if (record.doctorId) {
+            const doctor = await storage.getUser(record.doctorId);
+            if (doctor) {
+              doctorName = doctor.name;
+            }
+          }
+          return {
+            ...record,
+            recordType: record.type,
+            recordDate: record.createdAt,
+            summary: record.description,
+            doctorName,
+          };
+        })
+      );
+      res.json(enrichedRecords);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
     }

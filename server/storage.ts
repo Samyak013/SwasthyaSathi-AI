@@ -101,6 +101,7 @@ export class MemStorage implements IStorage {
   private aiChatHistory: Map<string, AIChatHistory>;
   private consentRecords: Map<string, ConsentRecord>;
   private emergencyAlerts: Map<string, EmergencyAlert>;
+  private otpStore: Map<string, { otp: string; expiresAt: Date }>;
 
   constructor() {
     this.users = new Map();
@@ -115,6 +116,24 @@ export class MemStorage implements IStorage {
     this.aiChatHistory = new Map();
     this.consentRecords = new Map();
     this.emergencyAlerts = new Map();
+    this.otpStore = new Map();
+  }
+
+  async storeOTP(abhaId: string, otp: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    this.otpStore.set(abhaId, { otp, expiresAt });
+  }
+
+  async verifyOTP(abhaId: string, otp: string): Promise<boolean> {
+    const stored = this.otpStore.get(abhaId);
+    if (!stored) return false;
+    if (stored.expiresAt < new Date()) {
+      this.otpStore.delete(abhaId);
+      return false;
+    }
+    if (stored.otp !== otp) return false;
+    this.otpStore.delete(abhaId);
+    return true;
   }
 
   async getUser(id: string): Promise<User | undefined> {

@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -16,43 +15,44 @@ import AnalyticsDashboard from "@/components/AnalyticsDashboard";
 
 function Router() {
   const [step, setStep] = useState<"login" | "role" | "dashboard">("login");
-  const [role, setRole] = useState<"doctor" | "patient" | "pharmacy" | null>(null);
+  const [userData, setUserData] = useState<any>(null);
   const [view, setView] = useState<"main" | "prescription" | "analytics">("main");
   const [darkMode, setDarkMode] = useState(false);
-
-  //todo: remove mock functionality
-  const userData = {
-    name: "Dr. Rajesh Kumar",
-    abhaId: "22-1234-5678-9012",
-    specialization: "General Physician, MD",
-  };
-
-  //todo: remove mock functionality
-  const patientData = {
-    name: "Priya Sharma",
-    abhaId: "22-1111-2222-3333",
-    age: 32,
-    gender: "Female",
-  };
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle("dark");
   };
 
-  const handleLogin = () => {
-    setStep("role");
-    console.log("User logged in");
+  const handleLogin = (data: any) => {
+    setUserData(data);
+    
+    if (data.user.role === "doctor" || data.user.role === "patient" || data.user.role === "pharmacy") {
+      setStep("dashboard");
+    } else {
+      setStep("role");
+    }
   };
 
   const handleRoleSelection = (selectedRole: "doctor" | "patient" | "pharmacy") => {
-    setRole(selectedRole);
+    if (userData) {
+      setUserData({
+        ...userData,
+        user: {
+          ...userData.user,
+          role: selectedRole,
+        },
+      });
+    }
     setStep("dashboard");
-    console.log("Role selected:", selectedRole);
   };
 
   const renderDashboard = () => {
-    if (role === "doctor") {
+    if (!userData) return null;
+
+    const { user, profileData } = userData;
+
+    if (user.role === "doctor") {
       if (view === "prescription") {
         return (
           <div>
@@ -65,9 +65,9 @@ function Router() {
               ← Back to Dashboard
             </Button>
             <PrescriptionCreator
-              doctorName={userData.name}
-              patientName={patientData.name}
-              patientAbhaId={patientData.abhaId}
+              doctorName={user.name}
+              patientName="Select Patient"
+              patientAbhaId=""
               onSave={(prescription) => {
                 console.log("Prescription saved:", prescription);
                 setView("main");
@@ -95,27 +95,34 @@ function Router() {
 
       return (
         <DoctorDashboard
-          doctorName={userData.name}
-          specialization={userData.specialization}
+          doctorName={user.name}
+          specialization={profileData?.specialization || "General Physician"}
           onCreatePrescription={() => setView("prescription")}
           onViewAnalytics={() => setView("analytics")}
         />
       );
     }
 
-    if (role === "patient") {
+    if (user.role === "patient") {
+      const patientProfile = profileData || {};
       return (
         <PatientDashboard
-          patientName={patientData.name}
-          abhaId={patientData.abhaId}
-          age={patientData.age}
-          gender={patientData.gender}
+          patientName={user.name}
+          abhaId={user.abhaId}
+          age={new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear()}
+          gender={user.gender}
+          userId={user.id}
         />
       );
     }
 
-    if (role === "pharmacy") {
-      return <PharmacyPortal pharmacyName="HealthPlus Pharmacy" location="Mumbai, Maharashtra" />;
+    if (user.role === "pharmacy") {
+      return (
+        <PharmacyPortal 
+          pharmacyName={user.name} 
+          location={profileData?.location || "Mumbai, Maharashtra"} 
+        />
+      );
     }
 
     return null;
@@ -140,17 +147,17 @@ function Router() {
         </div>
       )}
 
-      {step === "role" && (
+      {step === "role" && userData && (
         <div className="flex items-center justify-center min-h-screen p-6">
           <RoleSelection
-            userName={userData.name}
-            abhaId={userData.abhaId}
+            userName={userData.user.name}
+            abhaId={userData.user.abhaId}
             onSelectRole={handleRoleSelection}
           />
         </div>
       )}
 
-      {step === "dashboard" && (
+      {step === "dashboard" && userData && (
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
@@ -161,7 +168,7 @@ function Router() {
                 variant="outline"
                 onClick={() => {
                   setStep("login");
-                  setRole(null);
+                  setUserData(null);
                   setView("main");
                 }}
                 data-testid="button-logout"
@@ -177,7 +184,7 @@ function Router() {
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -187,5 +194,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;

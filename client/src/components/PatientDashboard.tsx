@@ -8,43 +8,89 @@ import AIChatbot from "./AIChatbot";
 import PrescriptionCard from "./PrescriptionCard";
 import EmergencySOSButton from "./EmergencySOSButton";
 import abhaCardImage from "@assets/generated_images/ABHA_health_card_mockup_2960ffc1.png";
+import { useQuery } from "@tanstack/react-query";
+import type { HealthRecord, Reminder, Prescription } from "@shared/schema";
+
+type EnrichedHealthRecord = HealthRecord & {
+  recordType: string;
+  recordDate: Date;
+  summary: string;
+  doctorName: string;
+};
+
+type EnrichedPrescription = Prescription & {
+  doctorName: string;
+  doctorSpecialization: string;
+  prescriptionDate: Date;
+  prescriptionId: string;
+  verificationStatus: "verified" | "pending" | "rejected";
+  medicines: Array<{
+    name: string;
+    dosage: string;
+    frequency: string;
+    duration: string;
+  }>;
+};
 
 interface PatientDashboardProps {
   patientName: string;
   abhaId: string;
   age: number;
   gender: string;
+  userId?: string;
 }
 
-export default function PatientDashboard({ patientName, abhaId, age, gender }: PatientDashboardProps) {
-  //todo: remove mock functionality
-  const healthRecords = [
-    {
-      id: "1",
-      type: "prescription" as const,
-      title: "General Checkup Prescription",
-      date: "Jan 24, 2025",
-      doctor: "Dr. Rajesh Kumar",
-      summary: "Prescribed Paracetamol and Azithromycin for fever and infection",
-      aiInsight: "Monitor temperature for next 3 days. Ensure complete antibiotic course.",
-    },
-    {
-      id: "2",
-      type: "lab_report" as const,
-      title: "Complete Blood Count (CBC)",
-      date: "Jan 20, 2025",
-      doctor: "Dr. Priya Mehta",
-      summary: "Hemoglobin: 13.2 g/dL, WBC: 8,500/µL, Platelets: 250,000/µL",
-      aiInsight: "All values within normal range. Hemoglobin slightly low, consider iron-rich diet.",
-    },
-  ];
+export default function PatientDashboard({ patientName, abhaId, age, gender, userId }: PatientDashboardProps) {
+  const { data: healthRecords = [], isLoading: loadingRecords } = useQuery<EnrichedHealthRecord[]>({
+    queryKey: [`/api/health-records/patient/${userId}`],
+    enabled: !!userId,
+  });
 
-  //todo: remove mock functionality
-  const upcomingReminders = [
-    { id: "1", type: "medicine", message: "Take Paracetamol 500mg", time: "2:00 PM" },
-    { id: "2", type: "appointment", message: "Follow-up with Dr. Kumar", time: "Tomorrow, 10:00 AM" },
-    { id: "3", type: "medicine", message: "Take Azithromycin 250mg", time: "8:00 PM" },
-  ];
+  const { data: reminders = [], isLoading: loadingReminders } = useQuery<Reminder[]>({
+    queryKey: [`/api/reminders/user/${userId}`],
+    enabled: !!userId,
+  });
+
+  const { data: prescriptions = [], isLoading: loadingPrescriptions } = useQuery<EnrichedPrescription[]>({
+    queryKey: [`/api/prescriptions/patient/${userId}`],
+    enabled: !!userId,
+  });
+
+  const upcomingReminders = reminders
+    .filter(r => !r.completed && new Date(r.scheduledAt) > new Date())
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .slice(0, 5);
+
+  const formatTimelineRecords = (records: EnrichedHealthRecord[]) => {
+    return records.map(record => ({
+      id: record.id,
+      type: record.recordType as "prescription" | "lab_report" | "diagnosis" | "vitals",
+      title: record.title,
+      date: new Date(record.recordDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      doctor: record.doctorName || "Unknown Doctor",
+      summary: record.summary,
+      aiInsight: record.aiSummary || "",
+    }));
+  };
+
+  const formatReminderTime = (scheduledAt: Date) => {
+    const now = new Date();
+    const reminderDate = new Date(scheduledAt);
+    const diffMs = reminderDate.getTime() - now.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffDays > 0) {
+      return `In ${diffDays} day${diffDays > 1 ? 's' : ''}, ${reminderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+    } else if (diffHours > 0) {
+      return `In ${diffHours} hour${diffHours > 1 ? 's' : ''}, ${reminderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`;
+    } else if (diffMins > 0) {
+      return `In ${diffMins} minute${diffMins > 1 ? 's' : ''}`;
+    } else {
+      return reminderDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -95,32 +141,44 @@ export default function PatientDashboard({ patientName, abhaId, age, gender }: P
               </TabsTrigger>
             </TabsList>
             <TabsContent value="records" className="mt-6">
-              <HealthRecordTimeline
-                records={healthRecords}
-                onDownload={(id) => console.log("Download:", id)}
-                onViewDetails={(id) => console.log("View details:", id)}
-              />
+              {loadingRecords ? (
+                <div className="text-center py-8 text-muted-foreground">Loading health records...</div>
+              ) : healthRecords.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No health records found</div>
+              ) : (
+                <HealthRecordTimeline
+                  records={formatTimelineRecords(healthRecords)}
+                  onDownload={(id) => console.log("Download:", id)}
+                  onViewDetails={(id) => console.log("View details:", id)}
+                />
+              )}
             </TabsContent>
             <TabsContent value="prescriptions" className="mt-6 space-y-4">
-              <PrescriptionCard
-                id="1"
-                doctorName="Dr. Rajesh Kumar"
-                doctorSpecialization="General Physician"
-                patientName={patientName}
-                date="Jan 24, 2025"
-                prescriptionId="RX-2025-001234"
-                status="verified"
-                medicines={[
-                  { name: "Paracetamol 500mg", dosage: "1 tablet", frequency: "3 times/day", duration: "5 days" },
-                  { name: "Azithromycin 250mg", dosage: "1 tablet", frequency: "Once/day", duration: "3 days" },
-                ]}
-                onDownload={() => console.log("Download")}
-                onShare={() => console.log("Share")}
-                onViewQR={() => console.log("View QR")}
-              />
+              {loadingPrescriptions ? (
+                <div className="text-center py-8 text-muted-foreground">Loading prescriptions...</div>
+              ) : prescriptions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No prescriptions found</div>
+              ) : (
+                prescriptions.map((prescription) => (
+                  <PrescriptionCard
+                    key={prescription.id}
+                    id={prescription.id}
+                    doctorName={prescription.doctorName}
+                    doctorSpecialization={prescription.doctorSpecialization || ""}
+                    patientName={patientName}
+                    date={new Date(prescription.prescriptionDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    prescriptionId={prescription.prescriptionId}
+                    status={prescription.verificationStatus as "verified" | "pending" | "rejected"}
+                    medicines={prescription.medicines}
+                    onDownload={() => console.log("Download")}
+                    onShare={() => console.log("Share")}
+                    onViewQR={() => console.log("View QR")}
+                  />
+                ))
+              )}
             </TabsContent>
             <TabsContent value="chat" className="mt-6">
-              <AIChatbot onSendMessage={(msg, lang) => console.log("Message:", msg, lang)} />
+              <AIChatbot userId={userId} />
             </TabsContent>
           </Tabs>
         </div>
@@ -134,21 +192,27 @@ export default function PatientDashboard({ patientName, abhaId, age, gender }: P
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {upcomingReminders.map((reminder) => (
-                <div
-                  key={reminder.id}
-                  className="p-3 rounded-lg bg-muted/50 hover-elevate"
-                  data-testid={`reminder-${reminder.id}`}
-                >
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="w-4 h-4 text-primary mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{reminder.message}</p>
-                      <p className="text-xs text-muted-foreground">{reminder.time}</p>
+              {loadingReminders ? (
+                <div className="text-center py-4 text-muted-foreground text-sm">Loading reminders...</div>
+              ) : upcomingReminders.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground text-sm">No upcoming reminders</div>
+              ) : (
+                upcomingReminders.map((reminder) => (
+                  <div
+                    key={reminder.id}
+                    className="p-3 rounded-lg bg-muted/50 hover-elevate"
+                    data-testid={`reminder-${reminder.id}`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <AlertCircle className="w-4 h-4 text-primary mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{reminder.message}</p>
+                        <p className="text-xs text-muted-foreground">{formatReminderTime(reminder.scheduledAt)}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
               <Button variant="outline" className="w-full" data-testid="button-manage-reminders">
                 Manage Reminders
               </Button>
