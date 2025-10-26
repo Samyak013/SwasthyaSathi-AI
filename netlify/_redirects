@@ -1,6 +1,0 @@
-# Redirect API requests to your backend — replace YOUR_BACKEND_URL with your deployed backend URL
-# Example: https://api.myapp.example.com
-/api/*    https://YOUR_BACKEND_URL/:splat    200
-
-# SPA fallback — serve index.html for all other routes
-/*    /index.html    200
