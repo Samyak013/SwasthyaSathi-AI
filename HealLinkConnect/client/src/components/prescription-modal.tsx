@@ -307,3 +307,19 @@ export default function PrescriptionModal({ onClose, doctorId }: PrescriptionMod
     </div>
   );
 }
+
+[build]
+  base = "HealLinkConnect"
+  command = "npm run build"
+  publish = "HealLinkConnect/dist/public"
+
+[[redirects]]
+  from = "/api/*"
+  to = "https://YOUR_BACKEND_URL/:splat"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
