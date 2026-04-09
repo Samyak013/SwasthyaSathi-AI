@@ -27,6 +27,7 @@ import {
   verifyPrescriptionQR,
   generateAnalyticsInsights,
 } from "./openai";
+import { sendOTPNotification } from "./notifications";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
@@ -150,38 +151,97 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/send-otp", async (req, res) => {
     try {
-      const { abhaId } = req.body;
-      const user = await storage.getUserByAbhaId(abhaId);
+      const { abhaId, email, phone, channel = "both" } = req.body;
       
+      // Find user by ABHA ID
+      const user = await storage.getUserByAbhaId(abhaId);
       if (!user) {
         return res.status(404).json({ message: "User not found with this ABHA ID" });
       }
 
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      await storage.storeOTP(abhaId, otp);
+      // Validate input
+      if (!email && !phone) {
+        return res.status(400).json({ message: "Email or phone number is required" });
+      }
 
-      console.log(`OTP for ${abhaId}: ${otp}`);
-      
-      res.json({ success: true, message: "OTP sent successfully" });
+      // Use provided values or fall back to user data
+      const userEmail = email || user.email;
+      const userPhone = phone || user.phone;
+
+      // Generate 6-digit OTP
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+      // Set expiry to 5 minutes from now
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      // Create OTP record
+      const otpRecord = await storage.createOTPRecord({
+        email: userEmail,
+        phone: userPhone,
+        abhaId,
+        otp,
+        channel: channel || "both",
+        expiresAt,
+      });
+
+      // Send OTP via specified channel(s)
+      const notificationSent = await sendOTPNotification({
+        email: userEmail,
+        phone: userPhone,
+        otp,
+        channel: channel || "both",
+        name: user.name,
+      });
+
+      if (!notificationSent && process.env.NODE_ENV === 'production') {
+        return res.status(500).json({ message: "Failed to send OTP" });
+      }
+
+      // Log for development
+      console.log(`✅ OTP sent via ${channel} to ${otpRecord.id}`);
+      console.log(`   Email: ${userEmail}`);
+      console.log(`   Phone: ${userPhone}`);
+      console.log(`   OTP: ${otp}`);
+
+      res.json({
+        success: true,
+        message: `OTP sent successfully via ${channel}`,
+        recordId: otpRecord.id,
+        maskedEmail: userEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
+        maskedPhone: userPhone.replace(/(\d{2})(\d*)(\d{2})/, '$1***$3'),
+      });
     } catch (error: any) {
+      console.error("Send OTP error:", error);
       res.status(400).json({ message: error.message });
     }
   });
 
   app.post("/api/auth/verify-otp", async (req, res) => {
     try {
-      const { abhaId, otp } = req.body;
-      
-      const isValid = await storage.verifyOTP(abhaId, otp);
-      if (!isValid) {
-        return res.status(401).json({ message: "Invalid or expired OTP" });
+      const { abhaId, email, phone, otp } = req.body;
+
+      // Validate input
+      if (!abhaId || !otp) {
+        return res.status(400).json({ message: "ABHA ID and OTP are required" });
       }
 
+      // Find user
       const user = await storage.getUserByAbhaId(abhaId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
 
+      // Use provided values or fall back to user data
+      const userEmail = email || user.email;
+      const userPhone = phone || user.phone;
+
+      // Verify OTP
+      const isValid = await storage.verifyOTPRecord(userEmail, userPhone, abhaId, otp);
+      if (!isValid) {
+        return res.status(401).json({ message: "Invalid or expired OTP" });
+      }
+
+      // Get user profile data
       let profileData = null;
       if (user.role === "doctor") {
         profileData = await storage.getDoctorByUserId(user.id);
@@ -191,8 +251,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileData = await storage.getPharmacyByUserId(user.id);
       }
 
-      res.json({ user, profileData });
+      res.json({
+        success: true,
+        message: "OTP verified successfully",
+        user,
+        profileData,
+      });
     } catch (error: any) {
+      console.error("Verify OTP error:", error);
       res.status(400).json({ message: error.message });
     }
   });

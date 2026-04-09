@@ -149,6 +149,19 @@ export const emergencyAlerts = pgTable("emergency_alerts", {
   resolvedAt: timestamp("resolved_at"),
 });
 
+export const otpRecords = pgTable("otp_records", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  phone: text("phone").notNull(),
+  abhaId: varchar("abha_id").notNull(),
+  otp: varchar("otp", { length: 6 }).notNull(),
+  channel: varchar("channel", { length: 20 }).notNull(), // 'email' or 'sms'
+  expiresAt: timestamp("expires_at").notNull(),
+  verified: boolean("verified").default(false).notNull(),
+  attempts: integer("attempts").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -210,6 +223,13 @@ export const insertEmergencyAlertSchema = createInsertSchema(emergencyAlerts).om
   resolvedAt: true,
 });
 
+export const insertOtpRecordSchema = createInsertSchema(otpRecords).omit({
+  id: true,
+  createdAt: true,
+  verified: true,
+  attempts: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -245,3 +265,6 @@ export type ConsentRecord = typeof consentRecords.$inferSelect;
 
 export type InsertEmergencyAlert = z.infer<typeof insertEmergencyAlertSchema>;
 export type EmergencyAlert = typeof emergencyAlerts.$inferSelect;
+
+export type InsertOtpRecord = z.infer<typeof insertOtpRecordSchema>;
+export type OtpRecord = typeof otpRecords.$inferSelect;

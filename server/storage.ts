@@ -23,6 +23,8 @@ import {
   type InsertConsentRecord,
   type EmergencyAlert,
   type InsertEmergencyAlert,
+  type OtpRecord,
+  type InsertOtpRecord,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -86,6 +88,16 @@ export interface IStorage {
   createEmergencyAlert(alert: InsertEmergencyAlert): Promise<EmergencyAlert>;
   getActiveEmergencyAlerts(): Promise<EmergencyAlert[]>;
   updateEmergencyAlert(id: string, alert: Partial<EmergencyAlert>): Promise<EmergencyAlert | undefined>;
+
+  // OTP methods (legacy - for backward compatibility)
+  storeOTP(abhaId: string, otp: string): Promise<void>;
+  verifyOTP(abhaId: string, otp: string): Promise<boolean>;
+
+  // New OTP methods
+  createOTPRecord(otp: InsertOtpRecord): Promise<OtpRecord>;
+  getOTPRecord(email: string, phone: string, abhaId: string): Promise<OtpRecord | undefined>;
+  verifyOTPRecord(email: string, phone: string, abhaId: string, otp: string): Promise<boolean>;
+  updateOTPRecord(id: string, updates: Partial<OtpRecord>): Promise<OtpRecord | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -102,6 +114,7 @@ export class MemStorage implements IStorage {
   private consentRecords: Map<string, ConsentRecord>;
   private emergencyAlerts: Map<string, EmergencyAlert>;
   private otpStore: Map<string, { otp: string; expiresAt: Date }>;
+  private otpRecords: Map<string, OtpRecord>;
 
   constructor() {
     this.users = new Map();
@@ -117,23 +130,7 @@ export class MemStorage implements IStorage {
     this.consentRecords = new Map();
     this.emergencyAlerts = new Map();
     this.otpStore = new Map();
-  }
-
-  async storeOTP(abhaId: string, otp: string): Promise<void> {
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    this.otpStore.set(abhaId, { otp, expiresAt });
-  }
-
-  async verifyOTP(abhaId: string, otp: string): Promise<boolean> {
-    const stored = this.otpStore.get(abhaId);
-    if (!stored) return false;
-    if (stored.expiresAt < new Date()) {
-      this.otpStore.delete(abhaId);
-      return false;
-    }
-    if (stored.otp !== otp) return false;
-    this.otpStore.delete(abhaId);
-    return true;
+    this.otpRecords = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -528,6 +525,80 @@ export class MemStorage implements IStorage {
     if (!alert) return undefined;
     const updated = { ...alert, ...alertData };
     this.emergencyAlerts.set(id, updated);
+    return updated;
+  }
+
+  // OTP Methods (Legacy - for backward compatibility)
+  async storeOTP(abhaId: string, otp: string): Promise<void> {
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    this.otpStore.set(abhaId, { otp, expiresAt });
+  }
+
+  async verifyOTP(abhaId: string, otp: string): Promise<boolean> {
+    const stored = this.otpStore.get(abhaId);
+    if (!stored) return false;
+    if (stored.expiresAt < new Date()) {
+      this.otpStore.delete(abhaId);
+      return false;
+    }
+    if (stored.otp !== otp) return false;
+    this.otpStore.delete(abhaId);
+    return true;
+  }
+
+  // New OTP Record Methods
+  async createOTPRecord(otpData: InsertOtpRecord): Promise<OtpRecord> {
+    const id = randomUUID();
+    const record: OtpRecord = {
+      id,
+      ...otpData,
+      verified: false,
+      attempts: 0,
+      createdAt: new Date(),
+    };
+    this.otpRecords.set(id, record);
+    return record;
+  }
+
+  async getOTPRecord(email: string, phone: string, abhaId: string): Promise<OtpRecord | undefined> {
+    return Array.from(this.otpRecords.values()).find(
+      (r) => r.email === email && r.phone === phone && r.abhaId === abhaId && !r.verified && r.expiresAt > new Date()
+    );
+  }
+
+  async verifyOTPRecord(email: string, phone: string, abhaId: string, otp: string): Promise<boolean> {
+    const record = await this.getOTPRecord(email, phone, abhaId);
+    if (!record) return false;
+
+    // Check expiry
+    if (record.expiresAt < new Date()) {
+      return false;
+    }
+
+    // Check attempts
+    if (record.attempts >= 3) {
+      return false;
+    }
+
+    // Check OTP
+    if (record.otp !== otp) {
+      // Increment attempts
+      const updated = { ...record, attempts: record.attempts + 1 };
+      this.otpRecords.set(record.id, updated);
+      return false;
+    }
+
+    // Mark as verified
+    const verified = { ...record, verified: true };
+    this.otpRecords.set(record.id, verified);
+    return true;
+  }
+
+  async updateOTPRecord(id: string, updates: Partial<OtpRecord>): Promise<OtpRecord | undefined> {
+    const record = this.otpRecords.get(id);
+    if (!record) return undefined;
+    const updated = { ...record, ...updates };
+    this.otpRecords.set(id, updated);
     return updated;
   }
 }
