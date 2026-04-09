@@ -156,17 +156,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Find user by ABHA ID
       const user = await storage.getUserByAbhaId(abhaId);
       if (!user) {
+        console.error(`User not found for ABHA ID: ${abhaId}`);
         return res.status(404).json({ message: "User not found with this ABHA ID" });
-      }
-
-      // Validate input
-      if (!email && !phone) {
-        return res.status(400).json({ message: "Email or phone number is required" });
       }
 
       // Use provided values or fall back to user data
       const userEmail = email || user.email;
       const userPhone = phone || user.phone;
+
+      // Validate that we have email and phone
+      if (!userEmail || !userPhone) {
+        console.error(`Missing email or phone for user ${abhaId}: email=${userEmail}, phone=${userPhone}`);
+        return res.status(400).json({ message: "Email and phone number are required for OTP" });
+      }
 
       // Generate 6-digit OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
