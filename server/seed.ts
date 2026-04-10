@@ -6,7 +6,7 @@ export async function seedDatabase() {
   const doctor1User = await storage.createUser({
     abhaId: "22-1234-5678-9012",
     name: "Dr. Rajesh Kumar",
-    email: "rajesh.kumar@hospital.in",
+    email: "samyak@acpce.ac.in",
     phone: "+91-9876543210",
     dateOfBirth: "1985-03-15",
     gender: "Male",
@@ -33,7 +33,7 @@ export async function seedDatabase() {
   const patient1User = await storage.createUser({
     abhaId: "22-1111-2222-3333",
     name: "Priya Sharma",
-    email: "priya.sharma@email.com",
+    email: "divyesh@acpce.ac.in",
     phone: "+91-9123456780",
     dateOfBirth: "1992-07-20",
     gender: "Female",
@@ -58,7 +58,7 @@ export async function seedDatabase() {
   const patient2User = await storage.createUser({
     abhaId: "22-4444-5555-6666",
     name: "Amit Patel",
-    email: "amit.patel@email.com",
+    email: "swayam@acpce.ac.in",
     phone: "+91-9234567890",
     dateOfBirth: "1978-11-05",
     gender: "Male",
@@ -83,7 +83,7 @@ export async function seedDatabase() {
   const pharmacy1User = await storage.createUser({
     abhaId: "22-8888-9999-0000",
     name: "HealthPlus Pharmacy",
-    email: "contact@healthplus.com",
+    email: "sachinshinde@acpce.ac.in",
     phone: "+91-9345678901",
     dateOfBirth: "2010-01-01",
     gender: "Other",
