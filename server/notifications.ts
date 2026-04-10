@@ -44,10 +44,10 @@ export async function sendOTPEmail(
   name: string
 ): Promise<boolean> {
   try {
-    // If Gmail not configured, log to console
+    // Require real email transporter - no dev mode fallback
     if (!transporter) {
-      console.log(`📧 OTP EMAIL to ${email}: ${otp}`);
-      return true;
+      console.error('❌ Gmail not configured. Please set GMAIL_USER and GMAIL_PASSWORD in .env');
+      return false;
     }
 
     const mailOptions = {

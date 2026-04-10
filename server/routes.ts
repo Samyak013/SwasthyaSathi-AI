@@ -196,11 +196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Failed to send OTP" });
       }
 
-      // Log for development
-      console.log(`✅ OTP sent via email to ${otpRecord.id}`);
-      console.log(`   Email: ${userEmail}`);
-      console.log(`   OTP: ${otp}`);
-
       res.json({
         success: true,
         message: `OTP sent successfully to your email`,

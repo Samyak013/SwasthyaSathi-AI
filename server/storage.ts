@@ -561,8 +561,9 @@ export class MemStorage implements IStorage {
   }
 
   async getOTPRecord(email: string, phone: string, abhaId: string): Promise<OtpRecord | undefined> {
+    // Match only on email and abhaId (phone-independent for email-only OTP)
     return Array.from(this.otpRecords.values()).find(
-      (r) => r.email === email && r.phone === phone && r.abhaId === abhaId && !r.verified && r.expiresAt > new Date()
+      (r) => r.email === email && r.abhaId === abhaId && !r.verified && r.expiresAt > new Date()
     );
   }
 
