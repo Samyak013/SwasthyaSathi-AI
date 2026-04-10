@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: swashtya-sathi-ai
+    runtime: node
+    startCommand: npm run build && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_PASSWORD
+        sync: false
+      - key: DATABASE_URL
+        sync: false
