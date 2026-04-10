@@ -23,6 +23,8 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
   const [channel, setChannel] = useState<"email" | "sms" | "both">("email");
   const [maskedEmail, setMaskedEmail] = useState("");
   const [maskedPhone, setMaskedPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [currentAbhaId, setCurrentAbhaId] = useState("");
   const { toast } = useToast();
 
@@ -63,6 +65,8 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
       });
       const data = await response.json();
       
+      setEmail(data.email || "");
+      setPhone(data.phone || "");
       setMaskedEmail(data.maskedEmail || "****");
       setMaskedPhone(data.maskedPhone || "****");
       setStep("otp");
@@ -96,6 +100,8 @@ export default function ABHALogin({ onLogin }: ABHALoginProps) {
     try {
       const response = await apiRequest("POST", "/api/auth/verify-otp", {
         abhaId: currentAbhaId,
+        email,
+        phone,
         otp,
       });
 

@@ -209,6 +209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         message: `OTP sent successfully via ${channel}`,
         recordId: otpRecord.id,
+        email: userEmail,
+        phone: userPhone,
         maskedEmail: userEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
         maskedPhone: userPhone.replace(/(\d{2})(\d*)(\d{2})/, '$1***$3'),
       });
