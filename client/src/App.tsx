@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -18,6 +18,50 @@ function Router() {
   const [userData, setUserData] = useState<any>(null);
   const [view, setView] = useState<"main" | "prescription" | "analytics">("main");
   const [darkMode, setDarkMode] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Restore session from localStorage on mount
+  useEffect(() => {
+    const savedSession = localStorage.getItem("swasthyaSathiSession");
+    const savedDarkMode = localStorage.getItem("swasthyaSathiDarkMode");
+    
+    if (savedDarkMode === "true") {
+      setDarkMode(true);
+      document.documentElement.classList.add("dark");
+    }
+    
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        setUserData(session.userData);
+        setStep(session.step);
+        setView(session.view || "main");
+      } catch (error) {
+        console.error("Failed to restore session:", error);
+        localStorage.removeItem("swasthyaSathiSession");
+      }
+    }
+    
+    setIsLoading(false);
+  }, []);
+
+  // Save session to localStorage whenever userData or step changes
+  useEffect(() => {
+    if (!isLoading && userData && step === "dashboard") {
+      const session = {
+        userData,
+        step,
+        view,
+        timestamp: new Date().toISOString(),
+      };
+      localStorage.setItem("swasthyaSathiSession", JSON.stringify(session));
+    }
+  }, [userData, step, view, isLoading]);
+
+  // Save dark mode preference
+  useEffect(() => {
+    localStorage.setItem("swasthyaSathiDarkMode", String(darkMode));
+  }, [darkMode]);
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
@@ -45,6 +89,13 @@ function Router() {
       });
     }
     setStep("dashboard");
+  };
+
+  const handleLogout = () => {
+    setStep("login");
+    setUserData(null);
+    setView("main");
+    localStorage.removeItem("swasthyaSathiSession");
   };
 
   const renderDashboard = () => {
@@ -96,6 +147,7 @@ function Router() {
         <DoctorDashboard
           doctorName={user.name}
           specialization={profileData?.specialization || "General Physician"}
+          userId={user.id}
           onCreatePrescription={() => setView("prescription")}
           onViewAnalytics={() => setView("analytics")}
         />
@@ -119,13 +171,25 @@ function Router() {
       return (
         <PharmacyPortal 
           pharmacyName={user.name} 
-          location={profileData?.location || "Mumbai, Maharashtra"} 
+          location={profileData?.location || "Mumbai, Maharashtra"}
+          userId={user.id}
         />
       );
     }
 
     return null;
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -165,11 +229,7 @@ function Router() {
               </div>
               <Button
                 variant="outline"
-                onClick={() => {
-                  setStep("login");
-                  setUserData(null);
-                  setView("main");
-                }}
+                onClick={handleLogout}
                 data-testid="button-logout"
               >
                 Logout
