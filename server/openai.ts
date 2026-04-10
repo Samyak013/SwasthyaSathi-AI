@@ -1,24 +1,23 @@
 import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { SYSTEM_PROMPTS } from "../shared/languageConfig";
 
-// Load OpenAI client if API key is present. If not, provide a lightweight stub
-// so imports don't crash the app — individual functions already catch errors
-// and return safe defaults when API calls fail.
-let openai: any;
-if (!process.env.OPENAI_API_KEY) {
-  console.warn("OPENAI_API_KEY not set — OpenAI calls will be disabled. Returning safe defaults where possible.");
-  openai = {
-    chat: {
-      completions: {
-        create: async () => {
-          throw new Error("OpenAI API key not set");
-        },
-      },
-    },
-  };
+// Load AI client - prefer Gemini if key is present, fall back to OpenAI
+let aiClient: any;
+let useGemini = false;
+
+if (process.env.GEMINI_API_KEY) {
+  console.log("✅ Using Google Gemini API (Free tier - 60 requests/min)");
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  aiClient = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  useGemini = true;
+} else if (process.env.OPENAI_API_KEY) {
+  console.log("✅ Using OpenAI API");
+  aiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  useGemini = false;
 } else {
-  // the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
-  openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  console.warn("⚠️ Neither GEMINI_API_KEY nor OPENAI_API_KEY set — AI calls will return safe defaults.");
+  aiClient = null;
 }
 
 interface PatientProfile {
@@ -481,6 +480,10 @@ export async function chatWithHealthAssistant(
   }
 ): Promise<string> {
   try {
+    if (!aiClient) {
+      return "I'm sorry, I'm having trouble responding right now. Please try again.";
+    }
+
     const languages = {
       en: "English",
       hi: "Hindi",
@@ -502,32 +505,49 @@ export async function chatWithHealthAssistant(
 Use this context to provide personalized, medically accurate advice specific to this patient's health profile. Continue responding in ${languages[language as keyof typeof languages] || "English"}.`;
     }
 
-    const messages: any[] = [
-      {
-        role: "system",
-        content: systemPrompt,
-      },
-    ];
-
-    chatHistory.forEach((msg) => {
-      messages.push({
-        role: msg.role === "user" ? "user" : "assistant",
-        content: msg.message,
+    if (useGemini) {
+      // Use Google Gemini API
+      let conversationHistory = systemPrompt + "\n\n";
+      
+      // Add chat history
+      chatHistory.forEach((msg) => {
+        conversationHistory += `${msg.role === "user" ? "User" : "Assistant"}: ${msg.message}\n`;
       });
-    });
+      
+      conversationHistory += `User: ${userMessage}\nAssistant:`;
 
-    messages.push({
-      role: "user",
-      content: userMessage,
-    });
+      const result = await aiClient.generateContent(conversationHistory);
+      const response = await result.response;
+      return response.text() || "I apologize, I couldn't generate a response.";
+    } else {
+      // Use OpenAI API (backward compatibility)
+      const messages: any[] = [
+        {
+          role: "system",
+          content: systemPrompt,
+        },
+      ];
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages,
-      max_completion_tokens: 8192,
-    });
+      chatHistory.forEach((msg) => {
+        messages.push({
+          role: msg.role === "user" ? "user" : "assistant",
+          content: msg.message,
+        });
+      });
 
-    return response.choices[0].message.content || "I apologize, I couldn't generate a response.";
+      messages.push({
+        role: "user",
+        content: userMessage,
+      });
+
+      const response = await (aiClient as any).chat.completions.create({
+        model: "gpt-5",
+        messages,
+        max_completion_tokens: 8192,
+      });
+
+      return response.choices[0].message.content || "I apologize, I couldn't generate a response.";
+    }
   } catch (error) {
     console.error("Health assistant chat failed:", error);
     return "I'm sorry, I'm having trouble responding right now. Please try again.";
@@ -664,27 +684,39 @@ Guidelines:
 
 export async function translateMessage(message: string, targetLanguage: string): Promise<string> {
   try {
+    if (!aiClient) {
+      return message;
+    }
+
     const languageNames: Record<string, string> = {
       en: "English",
       hi: "Hindi",
       mr: "Marathi",
     };
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-5",
-      messages: [
-        {
-          role: "system",
-          content: `You are a professional translator. Translate the following text to ${languageNames[targetLanguage] || "English"}. Preserve medical terminology accuracy.`,
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ],
-    });
+    const translationPrompt = `You are a professional translator. Translate the following text to ${languageNames[targetLanguage] || "English"}. Preserve medical terminology accuracy.\n\nText: ${message}`;
 
-    return response.choices[0].message.content || message;
+    if (useGemini) {
+      const result = await aiClient.generateContent(translationPrompt);
+      const response = await result.response;
+      return response.text() || message;
+    } else {
+      const response = await (aiClient as any).chat.completions.create({
+        model: "gpt-5",
+        messages: [
+          {
+            role: "system",
+            content: `You are a professional translator. Translate the following text to ${languageNames[targetLanguage] || "English"}. Preserve medical terminology accuracy.`,
+          },
+          {
+            role: "user",
+            content: message,
+          },
+        ],
+      });
+
+      return response.choices[0].message.content || message;
+    }
   } catch (error) {
     console.error("Translation failed:", error);
     return message;
