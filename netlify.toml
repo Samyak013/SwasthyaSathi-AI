@@ -1,17 +1,13 @@
 [build]
-# Build command - creates frontend SPA and backend bundle
 command = "npm run build"
-# Publish the frontend build directory
 publish = "dist/public"
 
-# Rewrite all routes to index.html for SPA routing (except API calls)
+# SPA Routing: Send all requests to index.html for React Router to handle
 [[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
-conditions = { Role = ["!api"] }
 
-# Environment variables
 [env.production]
 environment = { NODE_ENV = "production" }
 
