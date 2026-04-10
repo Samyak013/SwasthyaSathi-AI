@@ -14,11 +14,12 @@ import PatientDashboard from "@/components/PatientDashboard";
 import PharmacyPortal from "@/components/PharmacyPortal";
 import PrescriptionCreator from "@/components/PrescriptionCreator";
 import AnalyticsDashboard from "@/components/AnalyticsDashboard";
+import EmergencyResponseDashboard from "@/components/EmergencyResponseDashboard";
 
 function Router() {
   const [step, setStep] = useState<"role-select" | "doctor-login" | "patient-login" | "pharmacy-login" | "dashboard">("role-select");
   const [userData, setUserData] = useState<any>(null);
-  const [view, setView] = useState<"main" | "prescription" | "analytics">("main");
+  const [view, setView] = useState<"main" | "prescription" | "analytics" | "emergency">("main");
   const [darkMode, setDarkMode] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedRole, setSelectedRole] = useState<"doctor" | "patient" | "pharmacy" | null>(null);
@@ -146,6 +147,22 @@ function Router() {
         );
       }
 
+      if (view === "emergency") {
+        return (
+          <div>
+            <Button
+              variant="outline"
+              onClick={() => setView("main")}
+              className="mb-6"
+              data-testid="button-back-emergency"
+            >
+              ← Back to Dashboard
+            </Button>
+            <EmergencyResponseDashboard doctorId={user.id} />
+          </div>
+        );
+      }
+
       return (
         <DoctorDashboard
           doctorName={user.name}
@@ -153,6 +170,7 @@ function Router() {
           userId={user.id}
           onCreatePrescription={() => setView("prescription")}
           onViewAnalytics={() => setView("analytics")}
+          onViewEmergency={() => setView("emergency")}
         />
       );
     }
