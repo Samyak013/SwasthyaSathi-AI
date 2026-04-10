@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { SYSTEM_PROMPTS } from "../shared/languageConfig";
 
 // Load OpenAI client if API key is present. If not, provide a lightweight stub
 // so imports don't crash the app — individual functions already catch errors
@@ -480,13 +481,14 @@ export async function chatWithHealthAssistant(
   }
 ): Promise<string> {
   try {
-    const languageNames: Record<string, string> = {
+    const languages = {
       en: "English",
       hi: "Hindi",
       mr: "Marathi",
     };
 
-    let systemPrompt = `You are a helpful multilingual health assistant. Respond in ${languageNames[language] || "English"}. Provide accurate health information, but always remind users to consult healthcare professionals for medical advice.`;
+    // Get language-specific system prompt from shared config, with fallback
+    let systemPrompt = (SYSTEM_PROMPTS as any)[language] || (SYSTEM_PROMPTS as any)["en"];
     
     if (patientContext) {
       systemPrompt += `\n\nPatient Context:
@@ -497,7 +499,7 @@ export async function chatWithHealthAssistant(
 - Current Medications: ${patientContext.currentMedications?.join(", ") || "None"}
 - Allergies: ${patientContext.allergies?.join(", ") || "None"}
 
-Use this context to provide personalized, medically accurate advice specific to this patient's health profile.`;
+Use this context to provide personalized, medically accurate advice specific to this patient's health profile. Continue responding in ${languages[language as keyof typeof languages] || "English"}.`;
     }
 
     const messages: any[] = [
