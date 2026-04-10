@@ -66,10 +66,9 @@ function Router() {
             </Button>
             <PrescriptionCreator
               doctorName={user.name}
-              patientName="Select Patient"
-              patientAbhaId=""
+              doctorId={user.id}
               onSave={(prescription) => {
-                console.log("Prescription saved:", prescription);
+                console.log("✅ Prescription shared successfully:", prescription);
                 setView("main");
               }}
             />
