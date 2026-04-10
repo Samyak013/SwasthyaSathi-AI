@@ -4,14 +4,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { QrCode, Check, X, Package } from "lucide-react";
+import { QrCode, Check, X, Package, MessageSquare } from "lucide-react";
+import AIChatbot from "./AIChatbot";
 
 interface PharmacyPortalProps {
   pharmacyName: string;
   location: string;
+  userId?: string;
 }
 
-export default function PharmacyPortal({ pharmacyName, location }: PharmacyPortalProps) {
+export default function PharmacyPortal({ pharmacyName, location, userId }: PharmacyPortalProps) {
   const [prescriptionId, setPrescriptionId] = useState("");
   const [verifiedPrescription, setVerifiedPrescription] = useState<any>(null);
   const [status, setStatus] = useState<"idle" | "verified" | "invalid">("idle");
@@ -182,6 +184,24 @@ export default function PharmacyPortal({ pharmacyName, location }: PharmacyPorta
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Assistant Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            AI Pharmacy Assistant
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Get AI-powered drug information and pharmacy support</p>
+        </CardHeader>
+        <CardContent>
+          {userId ? (
+            <AIChatbot userId={userId} />
+          ) : (
+            <p className="text-center py-8 text-muted-foreground">Sign in to use AI assistant features</p>
+          )}
         </CardContent>
       </Card>
     </div>
