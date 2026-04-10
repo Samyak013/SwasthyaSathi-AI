@@ -3,15 +3,30 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, TrendingUp, Users, FileText, Activity } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Search, Plus, TrendingUp, Users, FileText, Activity, X, Calendar, MessageSquare, Clock } from "lucide-react";
 import PatientCard from "./PatientCard";
 import doctorAvatar from "@assets/generated_images/Indian_male_doctor_portrait_31c5b0e1.png";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DoctorDashboardProps {
   doctorName: string;
   specialization: string;
   onCreatePrescription?: () => void;
   onViewAnalytics?: () => void;
+}
+
+interface Patient {
+  id: string;
+  name: string;
+  abhaId: string;
+  age: number;
+  gender: string;
+  lastVisit: string;
+  conditions: string[];
 }
 
 export default function DoctorDashboard({
@@ -21,6 +36,11 @@ export default function DoctorDashboard({
   onViewAnalytics,
 }: DoctorDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [messageText, setMessageText] = useState("");
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [newAppointment, setNewAppointment] = useState({ date: "", time: "", reason: "" });
+  const [messages, setMessages] = useState<any[]>([]);
 
   //todo: remove mock functionality
   const stats = [
@@ -31,7 +51,7 @@ export default function DoctorDashboard({
   ];
 
   //todo: remove mock functionality
-  const patients = [
+  const patients: Patient[] = [
     {
       id: "1",
       name: "Priya Sharma",
@@ -61,6 +81,47 @@ export default function DoctorDashboard({
     },
   ];
 
+  const handleViewRecords = (patient: Patient) => {
+    setSelectedPatient(patient);
+  };
+
+  const handleSendMessage = (patient: Patient) => {
+    setSelectedPatient(patient);
+  };
+
+  const handleSchedule = (patient: Patient) => {
+    setSelectedPatient(patient);
+  };
+
+  const sendMessage = () => {
+    if (!messageText.trim()) return;
+    setMessages([
+      ...messages,
+      {
+        id: Date.now(),
+        sender: "doctor",
+        text: messageText,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    setMessageText("");
+  };
+
+  const scheduleAppointment = () => {
+    if (!newAppointment.date || !newAppointment.time) return;
+    setAppointments([
+      ...appointments,
+      {
+        id: Date.now(),
+        date: newAppointment.date,
+        time: newAppointment.time,
+        reason: newAppointment.reason,
+        status: "scheduled",
+      },
+    ]);
+    setNewAppointment({ date: "", time: "", reason: "" });
+  };
+    
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -102,54 +163,220 @@ export default function DoctorDashboard({
         })}
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Patient Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="all" className="w-full">
-            <div className="flex items-center justify-between mb-4">
-              <TabsList>
-                <TabsTrigger value="all" data-testid="tab-all-patients">All Patients</TabsTrigger>
-                <TabsTrigger value="recent" data-testid="tab-recent">Recent</TabsTrigger>
-                <TabsTrigger value="critical" data-testid="tab-critical">Critical</TabsTrigger>
-              </TabsList>
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, ABHA ID..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-patients"
-                />
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Patient Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Tabs defaultValue="all" className="w-full">
+                <div className="flex items-center justify-between mb-4">
+                  <TabsList>
+                    <TabsTrigger value="all" data-testid="tab-all-patients">All Patients</TabsTrigger>
+                    <TabsTrigger value="recent" data-testid="tab-recent">Recent</TabsTrigger>
+                    <TabsTrigger value="critical" data-testid="tab-critical">Critical</TabsTrigger>
+                  </TabsList>
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search by name, ABHA ID..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                      data-testid="input-search-patients"
+                    />
+                  </div>
+                </div>
+                <TabsContent value="all" className="space-y-4">
+                  {patients.map((patient) => (
+                    <PatientCard
+                      key={patient.id}
+                      {...patient}
+                      onViewRecords={() => handleViewRecords(patient)}
+                      onSendMessage={() => handleSendMessage(patient)}
+                      onSchedule={() => handleSchedule(patient)}
+                    />
+                  ))}
+                </TabsContent>
+                <TabsContent value="recent" className="space-y-4">
+                  <PatientCard
+                    {...patients[0]}
+                    onViewRecords={() => handleViewRecords(patients[0])}
+                    onSendMessage={() => handleSendMessage(patients[0])}
+                    onSchedule={() => handleSchedule(patients[0])}
+                  />
+                </TabsContent>
+                <TabsContent value="critical" className="space-y-4">
+                  <p className="text-center text-muted-foreground py-8">No critical patients at the moment</p>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Selected Patient Details */}
+        {selectedPatient && (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg">{selectedPatient.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground">ABHA: {selectedPatient.abhaId}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedPatient(null)}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
-            </div>
-            <TabsContent value="all" className="space-y-4">
-              {patients.map((patient) => (
-                <PatientCard
-                  key={patient.id}
-                  {...patient}
-                  onViewRecords={() => console.log("View records:", patient.id)}
-                  onSendMessage={() => console.log("Send message:", patient.id)}
-                  onSchedule={() => console.log("Schedule:", patient.id)}
-                />
-              ))}
-            </TabsContent>
-            <TabsContent value="recent" className="space-y-4">
-              <PatientCard
-                {...patients[0]}
-                onViewRecords={() => console.log("View records")}
-                onSendMessage={() => console.log("Send message")}
-                onSchedule={() => console.log("Schedule")}
-              />
-            </TabsContent>
-            <TabsContent value="critical" className="space-y-4">
-              <p className="text-center text-muted-foreground py-8">No critical patients at the moment</p>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              <Tabs defaultValue="records" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                  <TabsTrigger value="records" className="text-xs">
+                    <FileText className="w-3 h-3 mr-1" />
+                    Records
+                  </TabsTrigger>
+                  <TabsTrigger value="messages" className="text-xs">
+                    <MessageSquare className="w-3 h-3 mr-1" />
+                    Message
+                  </TabsTrigger>
+                  <TabsTrigger value="schedule" className="text-xs">
+                    <Calendar className="w-3 h-3 mr-1" />
+                    Schedule
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* Records Tab */}
+                <TabsContent value="records" className="space-y-3 mt-4">
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">Medical Conditions</p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedPatient.conditions.length > 0 ? (
+                        selectedPatient.conditions.map((c, i) => (
+                          <Badge key={i} variant="secondary">{c}</Badge>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No conditions recorded</p>
+                      )}
+                    </div>
+                  </div>
+                  <Separator />
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Recent Records</p>
+                    <Alert>
+                      <Clock className="h-4 w-4" />
+                      <AlertDescription>
+                        Last visit: {selectedPatient.lastVisit}
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                </TabsContent>
+
+                {/* Messages Tab */}
+                <TabsContent value="messages" className="space-y-3 mt-4">
+                  <div className="space-y-3 h-48 overflow-y-auto border rounded-lg p-3 bg-muted/30">
+                    {messages.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-6">No messages yet</p>
+                    ) : (
+                      messages.map((msg) => (
+                        <div key={msg.id} className="flex justify-end">
+                          <div className="bg-primary text-primary-foreground text-xs p-2 rounded max-w-xs">
+                            <p>{msg.text}</p>
+                            <p className="text-xs opacity-70">{msg.timestamp}</p>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Textarea
+                      placeholder="Type message..."
+                      value={messageText}
+                      onChange={(e) => setMessageText(e.target.value)}
+                      className="min-h-20 text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === "Enter" && e.ctrlKey) sendMessage();
+                      }}
+                    />
+                    <Button onClick={sendMessage} className="self-end">
+                      Send
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Schedule Tab */}
+                <TabsContent value="schedule" className="space-y-3 mt-4">
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs">Date</Label>
+                        <input
+                          type="date"
+                          value={newAppointment.date}
+                          onChange={(e) =>
+                            setNewAppointment({ ...newAppointment, date: e.target.value })
+                          }
+                          className="w-full text-sm px-2 py-1 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs">Time</Label>
+                        <input
+                          type="time"
+                          value={newAppointment.time}
+                          onChange={(e) =>
+                            setNewAppointment({ ...newAppointment, time: e.target.value })
+                          }
+                          className="w-full text-sm px-2 py-1 border rounded"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-xs">Reason</Label>
+                      <input
+                        type="text"
+                        placeholder="Consultation reason"
+                        value={newAppointment.reason}
+                        onChange={(e) =>
+                          setNewAppointment({ ...newAppointment, reason: e.target.value })
+                        }
+                        className="w-full text-sm px-2 py-1 border rounded"
+                      />
+                    </div>
+                    <Button onClick={scheduleAppointment} className="w-full text-sm">
+                      Schedule Appointment
+                    </Button>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <p className="text-sm font-semibold mb-2">Scheduled Appointments</p>
+                    {appointments.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">No appointments scheduled</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {appointments.map((apt) => (
+                          <div key={apt.id} className="text-xs border rounded p-2 bg-muted/50">
+                            <p className="font-semibold">{apt.date} at {apt.time}</p>
+                            <p className="text-muted-foreground">{apt.reason}</p>
+                            <Badge className="mt-1" variant="outline">{apt.status}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
