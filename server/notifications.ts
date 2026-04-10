@@ -1,5 +1,5 @@
-// Notification Service for sending OTP via Email and SMS
-// Supports Gmail for email and Twilio for SMS
+// Email OTP Service - Sends OTP via Gmail
+// Simple, free, and reliable
 
 import nodemailer from 'nodemailer';
 
@@ -14,16 +14,15 @@ if (process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
       pass: process.env.GMAIL_PASSWORD,
     },
   });
-  console.log('✅ Gmail transporter configured');
+  console.log('✅ Gmail Email OTP configured');
 } else {
-  console.log('⚠️ GMAIL_USER and GMAIL_PASSWORD not set - email OTP will be logged to console');
+  console.log('⚠️ WARNING: Set GMAIL_USER and GMAIL_PASSWORD in .env to enable real email OTP');
+  console.log('   Email OTP will be logged to console for now');
 }
 
 export interface OTPNotificationParams {
   email: string;
-  phone: string;
   otp: string;
-  channel: 'email' | 'sms' | 'both';
   name: string;
 }
 
@@ -79,83 +78,18 @@ export async function sendOTPEmail(
     return true;
   } catch (error) {
     console.error(`❌ Failed to send OTP email to ${email}:`, error);
-    // In development, still return true to allow testing
-    if (process.env.NODE_ENV === 'development') {
-      return true;
-    }
     return false;
   }
 }
 
 /**
- * Send OTP via SMS
- * Uses Twilio if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN are configured
- * Falls back to console logging if not configured
- */
-export async function sendOTPSMS(
-  phone: string,
-  otp: string,
-  name: string
-): Promise<boolean> {
-  try {
-    // If Twilio not configured, log to console
-    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-      console.log(`📱 OTP SMS to ${phone}: ${otp}`);
-      console.log(`   ⚠️  Twilio not configured - OTP logged to console`);
-      console.log(`   (Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_PHONE_NUMBER to enable real SMS)`);
-      return true;
-    }
-
-    // Try to use Twilio if available
-    try {
-      const twilio = require('twilio');
-      const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
-      
-      // Format phone number for Twilio (must start with +)
-      let formattedPhone = phone;
-      if (!phone.startsWith('+')) {
-        formattedPhone = '+' + phone.replace(/\D/g, '');
-      }
-
-      await client.messages.create({
-        body: `Your SwasthyaSathi OTP is: ${otp}. Valid for 5 minutes. Do not share.`,
-        from: process.env.TWILIO_PHONE_NUMBER,
-        to: formattedPhone,
-      });
-
-      console.log(`✅ OTP SMS sent to ${phone}`);
-      return true;
-    } catch (twilioError) {
-      console.error(`⚠️  Twilio error - falling back to console:`, (twilioError as any).message);
-      console.log(`📱 OTP SMS to ${phone}: ${otp}`);
-      return true;
-    }
-  } catch (error) {
-    console.error(`❌ Failed to send OTP SMS to ${phone}:`, error);
-    return false;
-  }
-}
-
-/**
- * Send OTP notification via specified channel(s)
+ * Send OTP notification - Email only
  */
 export async function sendOTPNotification(params: OTPNotificationParams): Promise<boolean> {
-  const { email, phone, otp, channel, name } = params;
+  const { email, otp, name } = params;
 
   try {
-    const results = [];
-
-    if (channel === 'email' || channel === 'both') {
-      const emailResult = await sendOTPEmail(email, otp, name);
-      results.push(emailResult);
-    }
-
-    if (channel === 'sms' || channel === 'both') {
-      const smsResult = await sendOTPSMS(phone, otp, name);
-      results.push(smsResult);
-    }
-
-    return results.every((r) => r === true);
+    return await sendOTPEmail(email, otp, name);
   } catch (error) {
     console.error('Error sending OTP notification:', error);
     return false;

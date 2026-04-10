@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/send-otp", async (req, res) => {
     try {
-      const { abhaId, email, phone, channel = "both" } = req.body;
+      const { abhaId, email, phone } = req.body;
       
       // Find user by ABHA ID
       const user = await storage.getUserByAbhaId(abhaId);
@@ -162,12 +162,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Use provided values or fall back to user data
       const userEmail = email || user.email;
-      const userPhone = phone || user.phone;
 
-      // Validate that we have email and phone
-      if (!userEmail || !userPhone) {
-        console.error(`Missing email or phone for user ${abhaId}: email=${userEmail}, phone=${userPhone}`);
-        return res.status(400).json({ message: "Email and phone number are required for OTP" });
+      // Validate that we have email
+      if (!userEmail) {
+        console.error(`Missing email for user ${abhaId}`);
+        return res.status(400).json({ message: "Email is required for OTP" });
       }
 
       // Generate 6-digit OTP
@@ -179,19 +178,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create OTP record
       const otpRecord = await storage.createOTPRecord({
         email: userEmail,
-        phone: userPhone,
+        phone: "",
         abhaId,
         otp,
-        channel: channel || "both",
+        channel: "email",
         expiresAt,
       });
 
-      // Send OTP via specified channel(s)
+      // Send OTP via email
       const notificationSent = await sendOTPNotification({
         email: userEmail,
-        phone: userPhone,
         otp,
-        channel: channel || "both",
         name: user.name,
       });
 
@@ -200,19 +197,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Log for development
-      console.log(`✅ OTP sent via ${channel} to ${otpRecord.id}`);
+      console.log(`✅ OTP sent via email to ${otpRecord.id}`);
       console.log(`   Email: ${userEmail}`);
-      console.log(`   Phone: ${userPhone}`);
       console.log(`   OTP: ${otp}`);
 
       res.json({
         success: true,
-        message: `OTP sent successfully via ${channel}`,
+        message: `OTP sent successfully to your email`,
         recordId: otpRecord.id,
         email: userEmail,
-        phone: userPhone,
         maskedEmail: userEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3'),
-        maskedPhone: userPhone.replace(/(\d{2})(\d*)(\d{2})/, '$1***$3'),
       });
     } catch (error: any) {
       console.error("Send OTP error:", error);
