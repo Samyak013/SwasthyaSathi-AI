@@ -469,7 +469,15 @@ Respond with detailed JSON matching this structure:
 export async function chatWithHealthAssistant(
   userMessage: string,
   language: string,
-  chatHistory: { role: string; message: string }[]
+  chatHistory: { role: string; message: string }[],
+  patientContext?: {
+    name?: string;
+    age?: number;
+    gender?: string;
+    medicalConditions?: string[];
+    currentMedications?: string[];
+    allergies?: string[];
+  }
 ): Promise<string> {
   try {
     const languageNames: Record<string, string> = {
@@ -478,10 +486,24 @@ export async function chatWithHealthAssistant(
       mr: "Marathi",
     };
 
+    let systemPrompt = `You are a helpful multilingual health assistant. Respond in ${languageNames[language] || "English"}. Provide accurate health information, but always remind users to consult healthcare professionals for medical advice.`;
+    
+    if (patientContext) {
+      systemPrompt += `\n\nPatient Context:
+- Name: ${patientContext.name || "Unknown"}
+- Age: ${patientContext.age || "Unknown"}
+- Gender: ${patientContext.gender || "Unknown"}
+- Medical Conditions: ${patientContext.medicalConditions?.join(", ") || "None"}
+- Current Medications: ${patientContext.currentMedications?.join(", ") || "None"}
+- Allergies: ${patientContext.allergies?.join(", ") || "None"}
+
+Use this context to provide personalized, medically accurate advice specific to this patient's health profile.`;
+    }
+
     const messages: any[] = [
       {
         role: "system",
-        content: `You are a helpful multilingual health assistant. Respond in ${languageNames[language] || "English"}. Provide accurate health information, but always remind users to consult healthcare professionals for medical advice.`,
+        content: systemPrompt,
       },
     ];
 
@@ -510,7 +532,133 @@ export async function chatWithHealthAssistant(
   }
 }
 
-export async function translateMessage(message: string, targetLanguage: string): Promise<string> {
+export async function generatePersonalizedHealthInsights(
+  patientData: {
+    name: string;
+    age: number;
+    gender: string;
+    medicalConditions: string[];
+    allergies: string[];
+    currentMedications?: { name: string; dosage: string; frequency: string }[];
+  },
+  recentHealthRecords?: {
+    type: string;
+    title: string;
+    description: string;
+    date: string;
+  }[]
+): Promise<{
+  insights: Array<{
+    title: string;
+    description: string;
+    priority: "high" | "medium" | "low";
+    icon: string;
+  }>;
+}> {
+  try {
+    const dataStr = JSON.stringify({
+      patient: patientData,
+      recentRecords: recentHealthRecords || [],
+    });
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-5",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert medical AI that generates personalized health insights for patients. Analyze the patient data and recent health records to create 3-4 actionable, personalized insights.
+
+Respond with ONLY a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "insights": [
+    {
+      "title": "string (short title, max 30 chars)",
+      "description": "string (detailed insight, 1-2 sentences)",
+      "priority": "high|medium|low",
+      "icon": "string (emoji or icon name like heart, activity, alertcircle, checkmark)"
+    }
+  ]
+}
+
+Guidelines:
+- Base insights on the patient's specific conditions, age, and medical history
+- Prioritize based on urgency and impact on health
+- Make recommendations actionable and specific
+- Consider drug interactions and allergies
+- Include preventive care recommendations`,
+        },
+        {
+          role: "user",
+          content: `Generate personalized health insights for this patient:\n${dataStr}`,
+        },
+      ],
+      max_completion_tokens: 2048,
+    });
+
+    const content = response.choices[0].message.content || "{}";
+    
+    // Parse the response, handling both raw JSON and markdown-wrapped JSON
+    let jsonStr = content;
+    if (content.includes("```json")) {
+      jsonStr = content.split("```json")[1].split("```")[0];
+    } else if (content.includes("```")) {
+      jsonStr = content.split("```")[1].split("```")[0];
+    }
+    
+    const result = JSON.parse(jsonStr.trim());
+    
+    // Validate and normalize the response
+    const insights = (result.insights || []).map((insight: any) => ({
+      title: insight.title || "Health Insight",
+      description: insight.description || "",
+      priority: (["high", "medium", "low"].includes(insight.priority) ? insight.priority : "medium") as "high" | "medium" | "low",
+      icon: insight.icon || "Activity",
+    }));
+
+    return { insights };
+  } catch (error) {
+    console.error("Health insights generation failed:", error);
+    
+    // Return default insights based on user data
+    const defaultInsights = [];
+    
+    if (patientData.age > 50) {
+      defaultInsights.push({
+        title: "Regular Health Screening",
+        description: "At your age, annual health screenings and preventive checkups are essential. Consider scheduling your yearly physical with your doctor.",
+        priority: "high" as const,
+        icon: "Heart",
+      });
+    }
+    
+    if (patientData.medicalConditions.length > 0) {
+      defaultInsights.push({
+        title: "Condition Management",
+        description: `Monitor your ${patientData.medicalConditions.join(", ")} regularly. Keep your medications consistent and report any symptoms to your doctor.`,
+        priority: "high" as const,
+        icon: "AlertCircle",
+      });
+    }
+    
+    if (!patientData.medicalConditions.includes("diabetes")) {
+      defaultInsights.push({
+        title: "Healthy Lifestyle",
+        description: "Maintain a balanced diet, exercise 30 minutes daily, and manage stress. These lifestyle changes significantly improve overall health.",
+        priority: "medium" as const,
+        icon: "Activity",
+      });
+    }
+
+    defaultInsights.push({
+      title: "Regular Medication Review",
+      description: "Schedule regular reviews with your pharmacist to ensure your medications are still appropriate and not causing interactions.",
+      priority: "medium" as const,
+      icon: "CheckCircle",
+    });
+
+    return { insights: defaultInsights.slice(0, 4) };
+  }
+}(message: string, targetLanguage: string): Promise<string> {
   try {
     const languageNames: Record<string, string> = {
       en: "English",
