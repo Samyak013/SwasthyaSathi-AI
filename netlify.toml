@@ -2,6 +2,13 @@
 command = "npm run build"
 publish = "dist/public"
 
+# Proxy API calls to the Render backend
+[[redirects]]
+from = "/api/*"
+to = "https://swasthyasathi-ai.onrender.com/api/:splat"
+status = 200
+force = true
+
 # SPA Routing: Send all requests to index.html for React Router to handle
 [[redirects]]
 from = "/*"
