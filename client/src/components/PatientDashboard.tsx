@@ -2,7 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Bell, MessageSquare, FileText, Activity, Heart, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Bell, MessageSquare, FileText, Activity, Heart, AlertCircle, X, Download, Share2, CheckCircle } from "lucide-react";
+import { useState } from "react";
 import HealthRecordTimeline from "./HealthRecordTimeline";
 import AIChatbot from "./AIChatbot";
 import PrescriptionCard from "./PrescriptionCard";
@@ -41,6 +44,8 @@ interface PatientDashboardProps {
 }
 
 export default function PatientDashboard({ patientName, abhaId, age, gender, userId }: PatientDashboardProps) {
+  const [selectedPrescription, setSelectedPrescription] = useState<EnrichedPrescription | null>(null);
+  
   const { data: healthRecords = [], isLoading: loadingRecords } = useQuery<EnrichedHealthRecord[]>({
     queryKey: [`/api/health-records/patient/${userId}`],
     enabled: !!userId,
@@ -173,6 +178,7 @@ export default function PatientDashboard({ patientName, abhaId, age, gender, use
                     onDownload={() => console.log("Download")}
                     onShare={() => console.log("Share")}
                     onViewQR={() => console.log("View QR")}
+                    onViewDetails={() => setSelectedPrescription(prescription)}
                   />
                 ))
               )}
@@ -236,6 +242,149 @@ export default function PatientDashboard({ patientName, abhaId, age, gender, use
           </Card>
         </div>
       </div>
+
+      {/* Prescription Detail Modal */}
+      <Dialog open={!!selectedPrescription} onOpenChange={(open) => !open && setSelectedPrescription(null)}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          {selectedPrescription && (
+            <>
+              <DialogHeader className="pb-4">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex-1">
+                    <DialogTitle className="text-xl">Prescription Details</DialogTitle>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      ID: {selectedPrescription.prescriptionId}
+                    </p>
+                  </div>
+                  <Badge 
+                    className={
+                      selectedPrescription.verificationStatus === 'verified' 
+                        ? 'bg-green-100 text-green-800' 
+                        : selectedPrescription.verificationStatus === 'pending'
+                        ? 'bg-yellow-100 text-yellow-800'
+                        : 'bg-red-100 text-red-800'
+                    }
+                  >
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    {selectedPrescription.verificationStatus.charAt(0).toUpperCase() + selectedPrescription.verificationStatus.slice(1)}
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <Separator />
+
+              {/* Doctor Information */}
+              <div className="grid grid-cols-2 gap-4 text-sm py-4">
+                <div>
+                  <p className="text-muted-foreground font-medium">Doctor</p>
+                  <p className="font-semibold text-base">{selectedPrescription.doctorName}</p>
+                  <p className="text-xs text-muted-foreground">{selectedPrescription.doctorSpecialization}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground font-medium">Date Issued</p>
+                  <p className="font-semibold">
+                    {new Date(selectedPrescription.prescriptionDate).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Diagnosis */}
+              <div className="py-4">
+                <p className="font-semibold text-sm mb-2">Diagnosis</p>
+                <p className="text-sm bg-muted/50 p-3 rounded">{selectedPrescription.diagnosis}</p>
+              </div>
+
+              {/* Symptoms */}
+              {selectedPrescription.symptoms && selectedPrescription.symptoms.length > 0 && (
+                <div className="py-4">
+                  <p className="font-semibold text-sm mb-2">Symptoms Reported</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPrescription.symptoms.map((symptom, idx) => (
+                      <Badge key={idx} variant="secondary" className="text-xs">
+                        {symptom}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Medicines */}
+              <div className="py-4">
+                <p className="font-semibold text-sm mb-3">Prescribed Medicines</p>
+                <div className="space-y-3">
+                  {selectedPrescription.medicines && selectedPrescription.medicines.length > 0 ? (
+                    selectedPrescription.medicines.map((medicine, idx) => (
+                      <div key={idx} className="p-3 border border-border rounded-lg bg-muted/30">
+                        <div className="flex justify-between items-start mb-2">
+                          <p className="font-medium text-sm">{medicine.name}</p>
+                          <Badge variant="outline" className="text-xs">{medicine.dosage}</Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <p>
+                            <span className="font-medium">Frequency:</span> {medicine.frequency}
+                          </p>
+                          <p>
+                            <span className="font-medium">Duration:</span> {medicine.duration}
+                          </p>
+                        </div>
+                        {medicine.instructions && (
+                          <p className="text-xs mt-2 p-2 bg-primary/5 rounded border-l-2 border-primary">
+                            📝 <span className="font-medium">Instructions:</span> {medicine.instructions}
+                          </p>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No medicines prescribed</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Lab Tests */}
+              {selectedPrescription.labTests && selectedPrescription.labTests.length > 0 && (
+                <div className="py-4">
+                  <p className="font-semibold text-sm mb-2">Recommended Lab Tests</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedPrescription.labTests.map((test, idx) => (
+                      <Badge key={idx} variant="outline" className="text-xs">
+                        🔬 {test}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Notes */}
+              {selectedPrescription.notes && (
+                <div className="py-4">
+                  <p className="font-semibold text-sm mb-2">Special Notes</p>
+                  <p className="text-sm bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 p-3 rounded">
+                    {selectedPrescription.notes}
+                  </p>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex gap-2 pt-4 border-t">
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+                <Button size="sm" variant="outline" className="flex-1">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Share
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

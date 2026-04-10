@@ -23,6 +23,7 @@ interface PrescriptionCardProps {
   onDownload?: () => void;
   onShare?: () => void;
   onViewQR?: () => void;
+  onViewDetails?: () => void;
 }
 
 export default function PrescriptionCard({
@@ -37,6 +38,7 @@ export default function PrescriptionCard({
   onDownload,
   onShare,
   onViewQR,
+  onViewDetails,
 }: PrescriptionCardProps) {
   const statusColors = {
     verified: "bg-green-500/10 text-green-700 dark:text-green-400",
@@ -45,7 +47,7 @@ export default function PrescriptionCard({
   };
 
   return (
-    <Card data-testid={`card-prescription-${id}`}>
+    <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={onViewDetails} data-testid={`card-prescription-${id}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div className="space-y-1">
