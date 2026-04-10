@@ -658,7 +658,9 @@ Guidelines:
 
     return { insights: defaultInsights.slice(0, 4) };
   }
-}(message: string, targetLanguage: string): Promise<string> {
+}
+
+export async function translateMessage(message: string, targetLanguage: string): Promise<string> {
   try {
     const languageNames: Record<string, string> = {
       en: "English",
