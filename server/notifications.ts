@@ -5,19 +5,26 @@ import nodemailer from 'nodemailer';
 
 // Create email transporter with Gmail credentials
 let transporter: any = null;
+let initialized = false;
 
-if (process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_PASSWORD,
-    },
-  });
-  console.log('✅ Gmail Email OTP configured');
-} else {
-  console.log('⚠️ WARNING: Set GMAIL_USER and GMAIL_PASSWORD in .env to enable real email OTP');
-  console.log('   Email OTP will be logged to console for now');
+// Initialize transporter - call this after dotenv.config()
+export function initializeEmailTransporter() {
+  if (initialized) return;
+  initialized = true;
+
+  if (process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
+    transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASSWORD,
+      },
+    });
+    console.log('✅ Gmail Email OTP configured');
+  } else {
+    console.log('⚠️ WARNING: Set GMAIL_USER and GMAIL_PASSWORD in .env to enable real email OTP');
+    console.log('   Email OTP will be logged to console for now');
+  }
 }
 
 export interface OTPNotificationParams {
