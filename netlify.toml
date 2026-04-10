@@ -1,25 +1,18 @@
 [build]
-publish = "dist/public"
+# Build command - creates frontend SPA and backend bundle
 command = "npm run build"
+# Publish the frontend build directory
+publish = "dist/public"
 
-[[redirects]]
-from = "/api/*"
-to = "/.netlify/functions/server:splat"
-status = 200
-
+# Rewrite all routes to index.html for SPA routing (except API calls)
 [[redirects]]
 from = "/*"
 to = "/index.html"
 status = 200
+conditions = { Role = ["!api"] }
 
-[functions]
-directory = "netlify/functions"
-node_bundler = "esbuild"
-
-[[edge]]
-path = "/api/*"
-function = "server"
-
+# Environment variables
 [env.production]
-[env.production.context.production]
 environment = { NODE_ENV = "production" }
+
+

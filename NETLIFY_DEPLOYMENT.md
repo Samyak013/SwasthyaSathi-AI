@@ -1,82 +1,112 @@
-# SwasthyaSathi-AI Deployment Guide
+# SwasthyaSathi-AI Full Deployment Guide
 
-All latest features and updates have been pushed to GitHub and are ready for Netlify deployment!
+## Architecture Overview
 
-## ✅ Latest Features Deployed
+This is a **full-stack application** with:
+- **Frontend**: React SPA (Vite) → Deployed to **Netlify**
+- **Backend**: Express.js + Node.js → Deploy to **Render** or **Railway**
 
-### 🔐 Real Gmail Email OTP System
-- 6-digit numeric OTP
-- 5-minute expiry
-- 3-attempt limit
-- Email+ABHA ID verification
-- Branded HTML email templates
+---
 
-### 👨‍⚕️ Doctor Dashboard
-✅ Patient Management & Search
-✅ Records Tab - Medical conditions & history
-✅ Messages Tab - Real-time patient messaging
-✅ Schedule Tab - Appointment booking
-✅ Prescription Creator - Patient ABHA ID search & prescription sharing
+## Part 1: Deploy Frontend to Netlify ✅
 
-### 👤 Patient Dashboard  
-✅ Health Records Timeline
-✅ Prescriptions Tab with **Detail Modal**
-✅ Prescription Details:
-   - Full diagnosis & symptoms
-   - Medicine list with dosage/frequency/duration/instructions
-   - Lab tests & special notes
-   - Doctor information & verification status
-✅ Medication Reminders
-✅ AI Health Insights
+### Step 1: Connect GitHub Repository to Netlify
 
-### 💊 Pharmacy Dashboard
-✅ Prescription management
+1. Go to [netlify.com](https://netlify.com)
+2. Click **"New site from Git"**
+3. Select **GitHub** and authorize
+4. Select repository: **Samyak013/SwasthyaSathi-AI**
+5. Configure build settings:
+   - **Build command**: `npm run build`
+   - **Publish directory**: `dist/public`
 
-### 📊 Analytics Dashboard
-✅ Statistics & trends
+### Step 2: Add Environment Variables to Netlify
 
-## 🚀 Netlify Deployment Setup
+In Netlify Dashboard:
+1. Go to **Site Settings** → **Build & Deploy** → **Environment**
+2. Click **Edit variables**
+3. Add these variables:
+   ```
+   VITE_API_URL = https://your-backend-url.com
+   OPENAI_API_KEY = your-openai-key (optional)
+   ```
 
-### Step 1: Configure Environment Variables on Netlify
+4. **Deploy Site**
 
-1. Go to your Netlify project dashboard
-2. Navigate to **Settings** → **Build & Deploy** → **Environment**
-3. Add these keys (copy from `.env.example`):
+---
 
+## Part 2: Deploy Backend to Render or Railway
+
+### Option A: Deploy to Render (Recommended)
+
+1. Go to [render.com](https://render.com)
+2. Click **"New +"** → **"Web Service"**
+3. Connect GitHub repository
+4. Configure:
+   - **Name**: `swasthya-sathi-backend`
+   - **Environment**: `Node`
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm run dev` or `npm start`
+   - **Port**: `5000`
+
+5. Add Environment Variables:
+   ```
+   NODE_ENV=production
+   PORT=5000
+   GMAIL_USER=sambgsr21@gmail.com
+   GMAIL_PASSWORD=nsqf smoq vuab qezj
+   OPENAI_API_KEY=your-key-here
+   ```
+
+6. **Deploy**
+
+### Option B: Deploy to Railway
+
+1. Go to [railway.app](https://railway.app)
+2. Click **"New Project"** → **"Deploy from GitHub"**
+3. Select repository
+4. Configure environment variables (same as above)
+5. **Deploy**
+
+---
+
+## Part 3: Connect Frontend to Backend
+
+After backend deployment, update Netlify environment:
+
+1. Copy your backend URL (e.g., `https://swasthya-sathi-backend.onrender.com`)
+2. Go to Netlify **Site Settings** → **Environment**
+3. Update:
+   ```
+   VITE_API_URL = https://your-backend-url.com
+   ```
+
+4. **Trigger redeploy** (push a commit to GitHub or use Netlify Deploy button)
+
+---
+
+## Environment Variables Summary
+
+### Frontend (Netlify)
 ```
-OPENAI_API_KEY = your-openai-api-key
-GMAIL_USER = your-email@gmail.com
-GMAIL_PASSWORD = your-app-password
-PORT = 5000
-NODE_ENV = production
+VITE_API_URL=https://your-backend-url.com
+OPENAI_API_KEY=optional
 ```
 
-### Step 2: Get Gmail App Password
+### Backend (Render/Railway)
+```
+NODE_ENV=production
+PORT=5000
+GMAIL_USER=sambgsr21@gmail.com
+GMAIL_PASSWORD=nsqf smoq vuab qezj
+OPENAI_API_KEY=your-key-here
+```
 
-1. Go to [Google Account Security](https://myaccount.google.com/apppasswords)
-2. Select **Mail** and **Windows Computer** (or your device)
-3. Copy the **16-character password**
-4. This is your `GMAIL_PASSWORD` value
+---
 
-### Step 3: Deploy
+## Test Credentials
 
-- Push code to GitHub (already done ✅)
-- Netlify will auto-deploy on push
-- Check the deploy log for status
-
-### Step 4: Test the Deployment
-
-After deployment is live:
-
-1. Visit your Netlify URL
-2. Use test credentials:
-   - **Doctor**: `22-1234-5678-9012`
-   - **Patient**: `22-1111-2222-3333`
-   - **Email for OTP**: Use the email in GMAIL_USER
-
-3. Real OTP emails will be sent via Gmail
-
-## 📝 Test Credentials
+Once deployed:
 
 | Role | ABHA ID | Email |
 |------|---------|-------|
@@ -85,33 +115,47 @@ After deployment is live:
 | Patient 2 | 22-4444-5555-6666 | samyak@acpce.ac.in |
 | Pharmacy | 22-8888-9999-0000 | samyak@acpce.ac.in |
 
-## 🔧 Local Development
-
-To run locally:
-
-```bash
-# Install dependencies
-npm install
-
-# Create .env file from .env.example
-cp .env.example .env
-
-# Add your credentials to .env
-GMAIL_USER=your-email@gmail.com
-GMAIL_PASSWORD=your-app-password
-
-# Start development server
-npm run dev
-```
-
-Server runs on `http://localhost:5000`
-
-## ✨ Latest Commit
-
-Commit: **bcf2c7e** - Add Gmail OTP configuration to .env.example
-
-All changes are **production-ready** and committed to main branch!
+OTP emails will be sent via Gmail to the provided email address.
 
 ---
 
-For issues or setup help, check the console logs during deployment.
+## Troubleshooting
+
+### Netlify Build Fails
+- Check **Netlify Build Logs** (Deploy → Logs)
+- Ensure `npm run build` succeeds locally: `npm run build`
+
+### API Calls Not Working
+- Check `VITE_API_URL` environment variable is set correctly
+- Verify backend URL is accessible
+- Check browser console for CORS errors
+
+### Gmail OTP Not Sending
+- Verify `GMAIL_USER` and `GMAIL_PASSWORD` are set on backend
+- Check backend logs for email errors
+- Ensure Gmail account has 2FA enabled and App Password created
+
+### Cold Start / Slow Load
+- First request to backend may be slow (cold start on free tier)
+- Use paid tier for faster response times
+
+---
+
+## Deployment Checklist
+
+- [ ] Frontend pushed to GitHub
+- [ ] Netlify site created from GitHub
+- [ ] Frontend build succeeds on Netlify
+- [ ] Backend deployed to Render/Railway
+- [ ] Backend environment variables configured
+- [ ] `VITE_API_URL` variable set on Netlify
+- [ ] Netlify redeployed with new env vars
+- [ ] Test login with OTP
+- [ ] All 3 dashboards working
+
+---
+
+## Support
+
+For detailed local setup instructions, see [README.md](./README.md)
+
