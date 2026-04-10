@@ -35,7 +35,7 @@ export const patients = pgTable("patients", {
   weight: integer("weight").default(0).notNull(),
   medicalConditions: text("medical_conditions").array().default([]).notNull(),
   allergies: text("allergies").array().default([]).notNull(),
-  emergencyContact: json("emergency_contact").$type<{ name: string; phone: string; relation: string }>().default({ name: "", phone: "", relation: "" }).notNull(),
+  emergencyContact: json("emergency_contact").$type<{ name: string; phone: string; email?: string; relation: string }>().default({ name: "", phone: "", relation: "" }).notNull(),
 });
 
 export const pharmacies = pgTable("pharmacies", {
