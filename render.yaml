@@ -2,7 +2,7 @@ services:
   - type: web
     name: swashtya-sathi-ai
     runtime: node
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build && npm prune --production
     startCommand: NODE_ENV=production node dist/index.js
     envVars:
       - key: NODE_ENV
