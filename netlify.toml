@@ -2,10 +2,17 @@
 command = "npm run build"
 publish = "dist/public"
 
-# Proxy API calls to the Render backend
+# Use Netlify function for better API proxy with timeout handling
 [[redirects]]
 from = "/api/*"
-to = "https://swasthyasathi-ai.onrender.com/api/:splat"
+to = "/.netlify/functions/api:splat"
+status = 200
+force = true
+
+# Fallback: Direct proxy with timeout (25 seconds for Render cold start)
+[[redirects]]
+from = "/api-direct/*"
+to = "https://swasthyasathi-ai.onrender.com/:splat"
 status = 200
 force = true
 
