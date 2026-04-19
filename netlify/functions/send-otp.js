@@ -10,6 +10,14 @@ function maskEmail(email) {
   return masked;
 }
 
+// Mock user database (matches backend seed data)
+const mockUsers = {
+  "22-1234-5678-9012": { name: "Dr. Rajesh Kumar", email: "doctor@acpce.ac.in", role: "doctor" },
+  "22-1111-2222-3333": { name: "Priya Sharma", email: "samyak@acpce.ac.in", role: "patient" },
+  "22-4444-5555-6666": { name: "Arjun Singh", email: "patient2@acpce.ac.in", role: "patient" },
+  "22-8888-9999-0000": { name: "HealthPlus Pharmacy", email: "pharmacy@acpce.ac.in", role: "pharmacy" },
+};
+
 // In-memory OTP store
 const otpStore = {};
 
@@ -25,27 +33,47 @@ exports.handler = async (event) => {
   try {
     const { abhaId, email } = JSON.parse(event.body || "{}");
 
-    if (!abhaId || !email) {
+    if (!abhaId) {
       return {
         statusCode: 400,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing abhaId or email" }),
+        body: JSON.stringify({ error: "Missing abhaId parameter" }),
       };
     }
 
+    // Look up user by ABHA ID (matches backend behavior)
+    const user = mockUsers[abhaId];
+    if (!user) {
+      return {
+        statusCode: 404,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "User not found with this ABHA ID" }),
+      };
+    }
+
+    // Use provided email or look up from mock database
+    const userEmail = email || user.email;
+    if (!userEmail) {
+      return {
+        statusCode: 400,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error: "Email is required for OTP" }),
+      };
+    }
     // Generate OTP
     const otp = generateOTP();
     const recordId = `otp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Store OTP
+    // Store OTP in memory
     otpStore[recordId] = {
       otp,
-      email,
+      email: userEmail,
+      abhaId,
       timestamp: Date.now(),
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
     };
 
-    // Log for debugging
-    console.log(`[OTP Generated] ${recordId} for ${email}: ${otp}`);
+    console.log(`[OTP Generated] ${recordId} for ${userEmail} (User: ${user.name}): ${otp}`);
 
     return {
       statusCode: 200,
@@ -54,8 +82,8 @@ exports.handler = async (event) => {
         success: true,
         message: "OTP sent successfully to your email",
         recordId,
-        email,
-        maskedEmail: maskEmail(email),
+        email: userEmail,
+        maskedEmail: maskEmail(userEmail),
         otp: process.env.NODE_ENV === "development" ? otp : undefined,
       }),
     };
