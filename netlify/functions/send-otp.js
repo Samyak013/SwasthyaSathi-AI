@@ -10,10 +10,10 @@ function maskEmail(email) {
   return masked;
 }
 
-// Mock user database (matches backend seed data exactly)
+// Mock user database (all test users use samyak@acpce.ac.in for simplicity)
 const mockUsers = {
   "22-1234-5678-9012": { name: "Dr. Rajesh Kumar", email: "samyak@acpce.ac.in", role: "doctor" },
-  "22-1111-2222-3333": { name: "Priya Sharma", email: "sachinshinde@acpce.ac.in", role: "patient" },
+  "22-1111-2222-3333": { name: "Priya Sharma", email: "samyak@acpce.ac.in", role: "patient" },
   "22-4444-5555-6666": { name: "Amit Patel", email: "samyak@acpce.ac.in", role: "patient" },
   "22-8888-9999-0000": { name: "HealthPlus Pharmacy", email: "samyak@acpce.ac.in", role: "pharmacy" },
 };
