@@ -1,4 +1,4 @@
-import dotenv from "dotenv";
+﻿import dotenv from "dotenv";
 dotenv.config();
 
 import express, { type Request, Response, NextFunction } from "express";
@@ -44,7 +44,7 @@ app.use((req, res, next) => {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+        logLine = logLine.slice(0, 79) + "â€¦";
       }
 
       log(logLine);
@@ -55,7 +55,18 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  await seedDatabase();
+  // Seed database in background (don't block server startup)
+  // Add 10-second timeout to prevent hanging on slow databases
+  const seedPromise = Promise.race([
+    seedDatabase(),
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Database seeding timeout')), 10000)
+    ),
+  ]);
+  
+  seedPromise.catch(err => {
+    console.error('⚠️ Database seeding failed, but server will continue:', err.message);
+  });
   
   const server = await registerRoutes(app);
 
