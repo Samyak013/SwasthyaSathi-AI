@@ -2,17 +2,17 @@
 command = "npm run build"
 publish = "dist/public"
 
+# OTP endpoint - route to dedicated Netlify function (independent of Render)
+[[redirects]]
+from = "/api/auth/send-otp"
+to = "/.netlify/functions/send-otp"
+status = 200
+force = true
+
 # Use Netlify function for better API proxy with timeout handling
 [[redirects]]
 from = "/api/*"
 to = "/.netlify/functions/api:splat"
-status = 200
-force = true
-
-# Fallback: Direct proxy with timeout (25 seconds for Render cold start)
-[[redirects]]
-from = "/api-direct/*"
-to = "https://swasthyasathi-ai.onrender.com/:splat"
 status = 200
 force = true
 
