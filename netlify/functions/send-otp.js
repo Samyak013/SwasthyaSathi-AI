@@ -13,17 +13,23 @@ const mockUsers = {
   "22-8888-9999-0000": { name: "HealthPlus Pharmacy", email: "samyak@acpce.ac.in", role: "pharmacy" },
 };
 
-// Proxy to backend for actual OTP sending
+// Proxy to backend for actual OTP sending with timeout
 async function sendOTPViaBackend(abhaId, email) {
+  const backendUrl = process.env.REACT_APP_API_URL || "https://swasthyasathi-ai.onrender.com";
+  
   try {
-    const backendUrl = process.env.REACT_APP_API_URL || "https://swasthyasathi-ai.onrender.com";
-    
+    // Create abort controller with 8 second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000);
+
     const response = await fetch(`${backendUrl}/api/auth/send-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ abhaId, email }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
     const data = await response.json();
     
     if (response.ok) {
@@ -34,7 +40,12 @@ async function sendOTPViaBackend(abhaId, email) {
       return null;
     }
   } catch (error) {
-    console.error(`❌ Failed to reach backend for OTP:`, error.message);
+    const isTimeout = error.name === 'AbortError';
+    if (isTimeout) {
+      console.warn(`⏱️ Backend timeout (8s) - using fallback OTP for ${email}`);
+    } else {
+      console.warn(`⚠️ Backend fetch error: ${error.message}`);
+    }
     return null;
   }
 }
