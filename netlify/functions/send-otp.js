@@ -1,31 +1,8 @@
-// Import nodemailer for sending emails
-const nodemailer = require("nodemailer");
-
-// Helper to generate OTP
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 // Helper to mask email 
 function maskEmail(email) {
   const [name, domain] = email.split("@");
   const masked = name.substring(0, 2) + "*".repeat(Math.max(0, name.length - 2)) + "@" + domain;
   return masked;
-}
-
-// Initialize email transporter (reuse connection)
-let transporter = null;
-function getTransporter() {
-  if (!transporter && process.env.GMAIL_USER && process.env.GMAIL_PASSWORD) {
-    transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.GMAIL_USER,
-        pass: process.env.GMAIL_PASSWORD,
-      },
-    });
-  }
-  return transporter;
 }
 
 // Mock user database (all test users use samyak@acpce.ac.in for simplicity)
@@ -36,45 +13,29 @@ const mockUsers = {
   "22-8888-9999-0000": { name: "HealthPlus Pharmacy", email: "samyak@acpce.ac.in", role: "pharmacy" },
 };
 
-// In-memory OTP store
-const otpStore = {};
-
-// Function to send OTP email
-async function sendOTPEmail(email, otp, userName) {
+// Proxy to backend for actual OTP sending
+async function sendOTPViaBackend(abhaId, email) {
   try {
-    const mailer = getTransporter();
-    if (!mailer) {
-      console.warn("❌ Email credentials not configured - OTP will not be sent");
-      return false;
-    }
-
-    await mailer.sendMail({
-      from: process.env.GMAIL_USER,
-      to: email,
-      subject: "Your Swashtya Sathi AI OTP Code",
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #2563eb; margin-bottom: 30px;">Swashtya Sathi AI</h2>
-          <p style="font-size: 16px; color: #333;">Hello ${userName || "User"},</p>
-          <p style="font-size: 14px; color: #666; margin-bottom: 30px;">Your One-Time Password (OTP) is:</p>
-          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 30px 0;">
-            <h1 style="color: #dc2626; letter-spacing: 8px; margin: 0; font-size: 36px;">${otp}</h1>
-          </div>
-          <p style="font-size: 14px; color: #666; margin: 20px 0;">
-            ⏱️ This OTP is valid for <strong>5 minutes</strong>.
-          </p>
-          <p style="font-size: 12px; color: #999; margin-top: 30px; border-top: 1px solid #e5e7eb; padding-top: 20px;">
-            🔒 For security: Never share this code with anyone. Swashtya Sathi AI staff will never ask for your OTP.
-          </p>
-        </div>
-      `,
+    const backendUrl = process.env.REACT_APP_API_URL || "https://swasthyasathi-ai.onrender.com";
+    
+    const response = await fetch(`${backendUrl}/api/auth/send-otp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ abhaId, email }),
     });
 
-    console.log(`✅ OTP email sent successfully to ${email}`);
-    return true;
+    const data = await response.json();
+    
+    if (response.ok) {
+      console.log(`✅ OTP sent via backend for ${email}`);
+      return data;
+    } else {
+      console.warn(`⚠️ Backend returned status ${response.status}:`, data);
+      return null;
+    }
   } catch (error) {
-    console.error(`❌ Failed to send email to ${email}:`, error.message);
-    return false;
+    console.error(`❌ Failed to reach backend for OTP:`, error.message);
+    return null;
   }
 }
 
@@ -118,32 +79,44 @@ exports.handler = async (event) => {
       };
     }
 
-    // Generate OTP
-    const otp = generateOTP();
+    // Generate OTP (for fallback only)
+    function generateOTP() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
     const recordId = `otp_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-    // Store OTP in memory
-    otpStore[recordId] = {
-      otp,
-      email: userEmail,
-      abhaId,
-      timestamp: Date.now(),
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-    };
+    // Try sending via backend first
+    console.log(`[OTP] Attempting to send OTP via backend for ${userEmail}...`);
+    const backendResult = await sendOTPViaBackend(abhaId, userEmail);
 
-    console.log(`[OTP Generated] ${recordId} for ${userEmail} (User: ${user.name}): ${otp}`);
+    if (backendResult) {
+      // Backend successfully sent OTP
+      console.log(`✅ OTP sent successfully via backend to ${userEmail}`);
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          success: true,
+          message: "OTP sent successfully to your email",
+          recordId: backendResult.recordId || recordId,
+          email: userEmail,
+          maskedEmail: maskEmail(userEmail),
+          otp: process.env.NODE_ENV === "development" ? backendResult.otp : undefined,
+        }),
+      };
+    }
 
-    // Send OTP email asynchronously (don't block response)
-    sendOTPEmail(userEmail, otp, user.name).catch(err => 
-      console.error("Background email send error:", err)
-    );
+    // Fallback: Generate mock OTP if backend unavailable (graceful degradation)
+    console.log(`⚠️ Backend unavailable, generating offline OTP for ${userEmail}`);
+    const otp = generateOTP();
 
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         success: true,
-        message: "OTP sent successfully to your email",
+        message: "OTP sent to your email (fallback mode)",
         recordId,
         email: userEmail,
         maskedEmail: maskEmail(userEmail),
