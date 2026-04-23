@@ -193,6 +193,20 @@ export default function PharmacyManagementSystem({
     { id: "m103", name: "Gabapentin", dosage: "300mg", quantity: 120, price: 145, expiryDate: "2026-11-15", batchNo: "BATCH103", supplier: "PharmaCorp", minStock: 60 },
     { id: "m104", name: "Pregabalin", dosage: "75mg", quantity: 100, price: 165, expiryDate: "2026-12-05", batchNo: "BATCH104", supplier: "MediLife", minStock: 50 },
     { id: "m105", name: "Zolpidem", dosage: "10mg", quantity: 140, price: 175, expiryDate: "2026-12-20", batchNo: "BATCH105", supplier: "MediSupply", minStock: 70 },
+
+    // LOW STOCK ITEMS (Alert needed)
+    { id: "m106", name: "Penicillin V", dosage: "250mg", quantity: 8, price: 95, expiryDate: "2026-09-15", batchNo: "BATCH106", supplier: "PharmaCorp", minStock: 50 },
+    { id: "m107", name: "Erythromycin", dosage: "250mg", quantity: 12, price: 105, expiryDate: "2026-10-20", batchNo: "BATCH107", supplier: "MediLife", minStock: 60 },
+    { id: "m108", name: "Norfloxacin", dosage: "400mg", quantity: 15, price: 88, expiryDate: "2026-11-30", batchNo: "BATCH108", supplier: "HealthCare Ltd", minStock: 75 },
+    { id: "m109", name: "Moxifloxacin", dosage: "400mg", quantity: 18, price: 185, expiryDate: "2026-12-10", batchNo: "BATCH109", supplier: "CardioMed", minStock: 80 },
+    { id: "m110", name: "Ampicillin", dosage: "250mg", quantity: 20, price: 65, expiryDate: "2026-10-15", batchNo: "BATCH110", supplier: "PharmaCorp", minStock: 90 },
+
+    // EXPIRING SOON (30 days or less)
+    { id: "m111", name: "Cefotaxime", dosage: "500mg", quantity: 110, price: 320, expiryDate: "2026-05-15", batchNo: "BATCH111", supplier: "MediSupply", minStock: 60 },
+    { id: "m112", name: "Streptomycin", dosage: "1g", quantity: 45, price: 280, expiryDate: "2026-05-20", batchNo: "BATCH112", supplier: "HealthCare Ltd", minStock: 30 },
+    { id: "m113", name: "Tobramycin", dosage: "80mg", quantity: 65, price: 350, expiryDate: "2026-05-10", batchNo: "BATCH113", supplier: "CardioMed", minStock: 40 },
+    { id: "m114", name: "Isoniazid", dosage: "300mg", quantity: 95, price: 55, expiryDate: "2026-05-18", batchNo: "BATCH114", supplier: "PharmaCorp", minStock: 50 },
+    { id: "m115", name: "Pyrazinamide", dosage: "500mg", quantity: 120, price: 65, expiryDate: "2026-05-25", batchNo: "BATCH115", supplier: "MediLife", minStock: 70 },
   ]);
 
   const [pendingPrescriptions] = useState<PendingPrescription[]>([

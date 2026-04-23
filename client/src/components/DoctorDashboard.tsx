@@ -154,7 +154,7 @@ export default function DoctorDashboard({
     { labelKey: "doctor.recoveryRate", value: "89%", icon: TrendingUp, color: "text-orange-600" },
   ];
 
-  // Extended patient list with realistic last visit dates (April 23, 2026 is today)
+  // Limited patient list - only 5 key patients with realistic dates (April 23, 2026 is today)
   const patients: Patient[] = [
     {
       id: "1",
@@ -183,7 +183,7 @@ export default function DoctorDashboard({
       age: 28,
       gender: "Female",
       lastVisit: getRelativeDate(3),
-      conditions: [],
+      conditions: ["Regular Checkup"],
       status: "normal",
     },
     {
@@ -193,67 +193,17 @@ export default function DoctorDashboard({
       age: 35,
       gender: "Male",
       lastVisit: getRelativeDate(1),
-      conditions: ["Migraine", "Stress"],
+      conditions: ["Migraine"],
       status: "normal",
     },
     {
       id: "5",
-      name: "Divya Mishra",
-      abhaId: "22-1112-1314-1516",
-      age: 29,
-      gender: "Female",
-      lastVisit: getRelativeDate(4),
-      conditions: ["PCOD"],
-      status: "normal",
-    },
-    {
-      id: "6",
-      name: "Sanjay Desai",
-      abhaId: "22-1718-1920-2122",
-      age: 55,
-      gender: "Male",
-      lastVisit: getRelativeDate(8),
-      conditions: ["High Cholesterol", "Obesity"],
-      status: "normal",
-    },
-    {
-      id: "7",
       name: "Meera Iyer",
       abhaId: "22-2324-2526-2728",
       age: 41,
       gender: "Female",
-      lastVisit: getRelativeDate(9),
-      conditions: ["Thyroid"],
-      status: "normal",
-    },
-    {
-      id: "8",
-      name: "Vivek Agarwal",
-      abhaId: "22-2930-3132-3334",
-      age: 38,
-      gender: "Male",
       lastVisit: getRelativeDate(5),
-      conditions: ["Gastritis", "Acidity"],
-      status: "normal",
-    },
-    {
-      id: "9",
-      name: "Shreya Bhat",
-      abhaId: "22-3536-3738-3940",
-      age: 26,
-      gender: "Female",
-      lastVisit: getRelativeDate(6),
-      conditions: [],
-      status: "normal",
-    },
-    {
-      id: "10",
-      name: "Harsh Joshi",
-      abhaId: "22-4142-4344-4546",
-      age: 47,
-      gender: "Male",
-      lastVisit: getRelativeDate(10),
-      conditions: ["Arthritis", "Joint Pain"],
+      conditions: ["Thyroid"],
       status: "normal",
     },
   ];
