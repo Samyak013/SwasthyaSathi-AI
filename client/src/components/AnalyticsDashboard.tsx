@@ -27,24 +27,33 @@ export default function AnalyticsDashboard() {
     { name: "Arthritis", count: 18, percentage: 7 },
   ];
 
-  // Generate dynamic data from current date (April 23, 2026)
-  // Shows last 7 months of consultation data with realistic progression
+  // Generate realistic 12-month data from April 23, 2026 baseline
   const generateMonthlyData = () => {
-    const currentDate = new Date(2026, 3, 23); // April 23, 2026
+    const currentDate = new Date(2026, 3, 23); // April 23, 2026 (TODAY)
     const months = [];
     
-    // Generate 7 months of data going backwards
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(currentDate);
-      date.setMonth(date.getMonth() - i);
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      months.push({
-        month: monthNames[date.getMonth()],
-        patients: Math.floor(40 + Math.random() * 50) // Random patients 40-90
-      });
-    }
+    // Realistic consultation data for 12 months (May 2025 → Apr 2026)
+    const monthlyPatients = [
+      { month: "May", year: 2025, patients: 42 },
+      { month: "Jun", year: 2025, patients: 51 },
+      { month: "Jul", year: 2025, patients: 48 },
+      { month: "Aug", year: 2025, patients: 62 },
+      { month: "Sep", year: 2025, patients: 74 },
+      { month: "Oct", year: 2025, patients: 68 },
+      { month: "Nov", year: 2025, patients: 89 },
+      { month: "Dec", year: 2025, patients: 78 },
+      { month: "Jan", year: 2026, patients: 92 },
+      { month: "Feb", year: 2026, patients: 85 },
+      { month: "Mar", year: 2026, patients: 98 },
+      { month: "Apr", year: 2026, patients: 68 }, // April 1-23 (23 days)
+    ];
     
-    return months;
+    return monthlyPatients.map(d => ({
+      month: d.month,
+      year: d.year,
+      patients: d.patients,
+      displayLabel: `${d.month} '${d.year.toString().slice(2)}`
+    }));
   };
 
   const monthlyData = generateMonthlyData();
@@ -92,7 +101,7 @@ export default function AnalyticsDashboard() {
               {monthlyData.map((data, idx) => (
                 <div key={idx} className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-medium">{data.month}</span>
+                    <span className="font-medium">{data.displayLabel}</span>
                     <span className="text-muted-foreground">{data.patients} patients</span>
                   </div>
                   <div className="h-2 bg-muted rounded-full overflow-hidden">
