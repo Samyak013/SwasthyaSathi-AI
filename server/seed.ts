@@ -33,7 +33,7 @@ export async function seedDatabase() {
   const patient1User = await storage.createUser({
     abhaId: "22-1111-2222-3333",
     name: "Priya Sharma",
-    email: "sachinshinde@acpce.ac.in",
+    email: "samyak@acpce.ac.in",
     phone: "+91-9123456780",
     dateOfBirth: "1992-07-20",
     gender: "Female",
