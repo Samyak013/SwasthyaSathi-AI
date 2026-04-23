@@ -42,6 +42,20 @@ interface Patient {
   status?: "critical" | "normal";
 }
 
+// Utility function to calculate relative date from April 23, 2026
+const BASE_DATE = new Date(2026, 3, 23);
+const getRelativeDate = (daysAgo: number): string => {
+  if (daysAgo === 0) return "Today";
+  if (daysAgo === 1) return "1 day ago";
+  if (daysAgo <= 7) return `${daysAgo} days ago`;
+  if (daysAgo <= 30) {
+    const weeks = Math.ceil(daysAgo / 7);
+    return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
+  }
+  const months = Math.ceil(daysAgo / 30);
+  return months === 1 ? "1 month ago" : `${months} months ago`;
+};
+
 export default function DoctorDashboard({
   doctorName,
   specialization,
@@ -59,7 +73,7 @@ export default function DoctorDashboard({
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedMonth, setSelectedMonth] = useState("April 2026");
 
-  // Month-wise critical patients data
+  // Month-wise critical patients data with realistic dates (April 23, 2026 is today)
   const criticalPatientsByMonth: Record<string, Patient[]> = {
     "April 2026": [
       {
@@ -68,7 +82,7 @@ export default function DoctorDashboard({
         abhaId: "22-9999-1111-2222",
         age: 58,
         gender: "Male",
-        lastVisit: "Today",
+        lastVisit: getRelativeDate(0),
         conditions: ["Severe Hypertension", "Heart Disease"],
         status: "critical",
       },
@@ -78,7 +92,7 @@ export default function DoctorDashboard({
         abhaId: "22-5555-6666-7777",
         age: 42,
         gender: "Female",
-        lastVisit: "Today",
+        lastVisit: getRelativeDate(0),
         conditions: ["Acute Asthma", "Respiratory Issues"],
         status: "critical",
       },
@@ -90,7 +104,7 @@ export default function DoctorDashboard({
         abhaId: "22-2222-3333-4444",
         age: 52,
         gender: "Male",
-        lastVisit: "1 day ago",
+        lastVisit: getRelativeDate(25),
         conditions: ["Diabetes Crisis", "Kidney Issues"],
         status: "critical",
       },
@@ -102,7 +116,7 @@ export default function DoctorDashboard({
         abhaId: "22-3333-4444-5555",
         age: 38,
         gender: "Female",
-        lastVisit: "2 days ago",
+        lastVisit: getRelativeDate(52),
         conditions: ["Pneumonia", "High Fever"],
         status: "critical",
       },
@@ -114,7 +128,7 @@ export default function DoctorDashboard({
         abhaId: "22-6666-7777-8888",
         age: 65,
         gender: "Male",
-        lastVisit: "3 days ago",
+        lastVisit: getRelativeDate(83),
         conditions: ["Stroke Recovery", "Paralysis"],
         status: "critical",
       },
@@ -126,7 +140,7 @@ export default function DoctorDashboard({
         abhaId: "22-4444-5555-7777",
         age: 48,
         gender: "Female",
-        lastVisit: "1 week ago",
+        lastVisit: getRelativeDate(114),
         conditions: ["Sepsis", "Organ Failure Risk"],
         status: "critical",
       },
@@ -135,12 +149,12 @@ export default function DoctorDashboard({
 
   const stats = [
     { labelKey: "doctor.totalPatients", value: "248", icon: Users, color: "text-blue-600" },
-    { labelKey: "doctor.todayConsultations", value: "12", icon: Activity, color: "text-green-600" },
-    { labelKey: "doctor.prescriptions", value: "156", icon: FileText, color: "text-purple-600" },
-    { labelKey: "doctor.recoveryRate", value: "94%", icon: TrendingUp, color: "text-orange-600" },
+    { labelKey: "doctor.todayConsultations", value: "8", icon: Activity, color: "text-green-600" },
+    { labelKey: "doctor.prescriptions", value: "312", icon: FileText, color: "text-purple-600" },
+    { labelKey: "doctor.recoveryRate", value: "89%", icon: TrendingUp, color: "text-orange-600" },
   ];
 
-  // Extended patient list with more Indian names
+  // Extended patient list with realistic last visit dates (April 23, 2026 is today)
   const patients: Patient[] = [
     {
       id: "1",
@@ -148,7 +162,7 @@ export default function DoctorDashboard({
       abhaId: "22-1111-2222-3333",
       age: 32,
       gender: "Female",
-      lastVisit: "2 days ago",
+      lastVisit: getRelativeDate(2),
       conditions: ["Diabetes Type 2", "Hypertension"],
       status: "normal",
     },
@@ -158,7 +172,7 @@ export default function DoctorDashboard({
       abhaId: "22-4444-5555-6666",
       age: 45,
       gender: "Male",
-      lastVisit: "1 week ago",
+      lastVisit: getRelativeDate(7),
       conditions: ["Asthma"],
       status: "normal",
     },
@@ -168,7 +182,7 @@ export default function DoctorDashboard({
       abhaId: "22-7777-8888-9999",
       age: 28,
       gender: "Female",
-      lastVisit: "3 days ago",
+      lastVisit: getRelativeDate(3),
       conditions: [],
       status: "normal",
     },
@@ -178,7 +192,7 @@ export default function DoctorDashboard({
       abhaId: "22-1234-5678-9101",
       age: 35,
       gender: "Male",
-      lastVisit: "1 day ago",
+      lastVisit: getRelativeDate(1),
       conditions: ["Migraine", "Stress"],
       status: "normal",
     },
@@ -188,7 +202,7 @@ export default function DoctorDashboard({
       abhaId: "22-1112-1314-1516",
       age: 29,
       gender: "Female",
-      lastVisit: "3 days ago",
+      lastVisit: getRelativeDate(4),
       conditions: ["PCOD"],
       status: "normal",
     },
@@ -198,7 +212,7 @@ export default function DoctorDashboard({
       abhaId: "22-1718-1920-2122",
       age: 55,
       gender: "Male",
-      lastVisit: "5 days ago",
+      lastVisit: getRelativeDate(8),
       conditions: ["High Cholesterol", "Obesity"],
       status: "normal",
     },
@@ -208,7 +222,7 @@ export default function DoctorDashboard({
       abhaId: "22-2324-2526-2728",
       age: 41,
       gender: "Female",
-      lastVisit: "1 week ago",
+      lastVisit: getRelativeDate(9),
       conditions: ["Thyroid"],
       status: "normal",
     },
@@ -218,7 +232,7 @@ export default function DoctorDashboard({
       abhaId: "22-2930-3132-3334",
       age: 38,
       gender: "Male",
-      lastVisit: "4 days ago",
+      lastVisit: getRelativeDate(5),
       conditions: ["Gastritis", "Acidity"],
       status: "normal",
     },
@@ -228,7 +242,7 @@ export default function DoctorDashboard({
       abhaId: "22-3536-3738-3940",
       age: 26,
       gender: "Female",
-      lastVisit: "2 days ago",
+      lastVisit: getRelativeDate(6),
       conditions: [],
       status: "normal",
     },
@@ -238,7 +252,7 @@ export default function DoctorDashboard({
       abhaId: "22-4142-4344-4546",
       age: 47,
       gender: "Male",
-      lastVisit: "6 days ago",
+      lastVisit: getRelativeDate(10),
       conditions: ["Arthritis", "Joint Pain"],
       status: "normal",
     },

@@ -25,13 +25,18 @@ interface AIChatbotProps {
 
 export default function AIChatbot({ userId }: AIChatbotProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Use realistic timestamp for April 23, 2026 at 10:30 AM
+  const getTimeString = () => {
+    const date = new Date(2026, 3, 23, 10, 30);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
       role: "assistant",
       content: LANGUAGE_PROMPTS.en.greeting,
       language: "en",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: getTimeString(),
     },
   ]);
   const [input, setInput] = useState("");
@@ -58,13 +63,13 @@ export default function AIChatbot({ userId }: AIChatbotProps) {
     setLanguage(newLanguage);
     setLanguageChanged(true);
     
-    // Add greeting in new language
+    // Add greeting in new language with realistic timestamp
     const greetingMessage: Message = {
       id: `greeting-${Date.now()}`,
       role: "assistant",
       content: (LANGUAGE_PROMPTS as any)[newLanguage]?.greeting || LANGUAGE_PROMPTS.en.greeting,
       language: newLanguage,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: getTimeString(),
     };
     
     setMessages((prev) => [...prev, greetingMessage]);
@@ -96,7 +101,7 @@ export default function AIChatbot({ userId }: AIChatbotProps) {
           role: "assistant",
           content: data.message,
           language,
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          timestamp: getTimeString(),
         };
         setMessages((prev) => [...prev, aiMessage]);
       } else {
@@ -117,7 +122,7 @@ export default function AIChatbot({ userId }: AIChatbotProps) {
         role: "assistant",
         content: (LANGUAGE_PROMPTS as any)[language]?.error || LANGUAGE_PROMPTS.en.error,
         language,
-        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        timestamp: getTimeString(),
       };
       setMessages((prev) => [...prev, errorMessage]);
     },
@@ -131,7 +136,7 @@ export default function AIChatbot({ userId }: AIChatbotProps) {
       role: "user",
       content: input,
       language,
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      timestamp: getTimeString(),
     };
 
     setMessages((prev) => [...prev, userMessage]);

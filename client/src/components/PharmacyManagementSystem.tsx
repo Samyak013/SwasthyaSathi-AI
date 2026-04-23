@@ -66,7 +66,7 @@ export default function PharmacyManagementSystem({
     minStock: 10,
   });
 
-  // Mock data
+  // Mock data with realistic dates (April 23, 2026 is today)
   const [inventory, setInventory] = useState<PharmacyItem[]>([
     {
       id: "m1",
@@ -74,7 +74,7 @@ export default function PharmacyManagementSystem({
       dosage: "500mg",
       quantity: 150,
       price: 50,
-      expiryDate: "2025-12-31",
+      expiryDate: "2026-12-31",
       batchNo: "BATCH001",
       supplier: "PharmaCorp",
       minStock: 50,
@@ -85,7 +85,7 @@ export default function PharmacyManagementSystem({
       dosage: "250mg",
       quantity: 80,
       price: 120,
-      expiryDate: "2025-06-30",
+      expiryDate: "2026-08-30",
       batchNo: "BATCH002",
       supplier: "MediSupply",
       minStock: 40,
@@ -96,7 +96,7 @@ export default function PharmacyManagementSystem({
       dosage: "500mg",
       quantity: 25,
       price: 200,
-      expiryDate: "2026-03-15",
+      expiryDate: "2027-03-15",
       batchNo: "BATCH003",
       supplier: "HealthCare Ltd",
       minStock: 50,
@@ -107,7 +107,7 @@ export default function PharmacyManagementSystem({
       dosage: "10mg",
       quantity: 120,
       price: 300,
-      expiryDate: "2025-09-20",
+      expiryDate: "2026-09-20",
       batchNo: "BATCH004",
       supplier: "CardioMed",
       minStock: 60,
@@ -117,8 +117,8 @@ export default function PharmacyManagementSystem({
   const [pendingPrescriptions] = useState<PendingPrescription[]>([
     {
       id: "px1",
-      patientName: "John Doe",
-      prescriptionDate: new Date().toISOString(),
+      patientName: "Priya Sharma",
+      prescriptionDate: new Date(2026, 3, 23).toISOString(),
       medicines: [
         { name: "Aspirin", dosage: "500mg", quantity: 10 },
         { name: "Amoxicillin", dosage: "250mg", quantity: 7 },
@@ -127,8 +127,8 @@ export default function PharmacyManagementSystem({
     },
     {
       id: "px2",
-      patientName: "Jane Smith",
-      prescriptionDate: new Date(Date.now() - 86400000).toISOString(),
+      patientName: "Amit Patel",
+      prescriptionDate: new Date(2026, 3, 22).toISOString(),
       medicines: [
         { name: "Metformin", dosage: "500mg", quantity: 30 },
       ],
