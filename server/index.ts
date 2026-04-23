@@ -1,4 +1,4 @@
-﻿import dotenv from "dotenv";
+import dotenv from "dotenv";
 dotenv.config();
 
 import express, { type Request, Response, NextFunction } from "express";
@@ -24,6 +24,31 @@ app.use(express.json({
 }));
 app.use(express.urlencoded({ extended: false }));
 
+// Request timeout middleware - optimized for Render free tier
+app.use((req, res, next) => {
+  // Set longer timeout for free tier (30 seconds)
+  req.socket.setTimeout(30000);
+  
+  // OTP endpoint gets 20 seconds timeout
+  // All other /api endpoints get 15 seconds
+  if (req.path.startsWith('/api')) {
+    const isOTPEndpoint = req.path.includes('otp') || req.path.includes('auth');
+    const timeoutMs = isOTPEndpoint ? 20000 : 15000;
+    
+    const timeoutHandle = setTimeout(() => {
+      if (!res.headersSent) {
+        console.error(`⏱️ Request timeout (${timeoutMs}ms) for ${req.method} ${req.path}`);
+        res.status(504).json({ message: 'Request timeout - server busy' });
+      }
+    }, timeoutMs);
+
+    res.on('finish', () => clearTimeout(timeoutHandle));
+    res.on('close', () => clearTimeout(timeoutHandle));
+  }
+  
+  next();
+});
+
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -44,7 +69,7 @@ app.use((req, res, next) => {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "â€¦";
+        logLine = logLine.slice(0, 79) + "…";
       }
 
       log(logLine);
@@ -92,13 +117,14 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
-  const isProduction = process.env.NODE_ENV === 'production'
-  const host = process.env.HOST || (isProduction ? '0.0.0.0' : 'localhost');
+  // In production (Render), bind to 0.0.0.0 so Render can detect the open port
+  // In development, use 0.0.0.0 to accept both IPv4 and IPv6
+  const isProduction = process.env.NODE_ENV === 'production';
+  const host = process.env.HOST || '0.0.0.0';
   server.listen({
     port,
     host,
   }, () => {
-    log(`serving on ${host}:${port}`);
+    log(`serving on http://localhost:${port}`);
   });
 })();
-

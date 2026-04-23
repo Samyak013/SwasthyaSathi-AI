@@ -5,8 +5,7 @@ export default function PrescriptionCreatorExample() {
     <div className="p-6">
       <PrescriptionCreator
         doctorName="Dr. Rajesh Kumar"
-        patientName="Priya Sharma"
-        patientAbhaId="22-1111-2222-3333"
+        doctorId="doc-123"
         onSave={(prescription) => console.log("Saved:", prescription)}
       />
     </div>

@@ -5,8 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Search, Plus, TrendingUp, Users, FileText, Activity, X, Calendar, MessageSquare, Clock } from "lucide-react";
+import { Search, Plus, TrendingUp, Users, FileText, Activity, X, Calendar, MessageSquare, Clock, AlertCircle, MapPin } from "lucide-react";
 import PatientCard from "./PatientCard";
+import AIChatbot from "./AIChatbot";
+import NearbyFacilitiesMap from "./NearbyFacilitiesMap";
 import doctorAvatar from "@assets/generated_images/Indian_male_doctor_portrait_31c5b0e1.png";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -15,8 +17,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 interface DoctorDashboardProps {
   doctorName: string;
   specialization: string;
+  userId?: string;
   onCreatePrescription?: () => void;
   onViewAnalytics?: () => void;
+  onViewEmergency?: () => void;
 }
 
 interface Patient {
@@ -32,8 +36,10 @@ interface Patient {
 export default function DoctorDashboard({
   doctorName,
   specialization,
+  userId,
   onCreatePrescription,
   onViewAnalytics,
+  onViewEmergency,
 }: DoctorDashboardProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
@@ -141,6 +147,10 @@ export default function DoctorDashboard({
             <TrendingUp className="w-4 h-4 mr-2" />
             Analytics
           </Button>
+          <Button variant="destructive" onClick={onViewEmergency} data-testid="button-view-emergency">
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Emergency SOS
+          </Button>
         </div>
       </div>
 
@@ -236,7 +246,7 @@ export default function DoctorDashboard({
             <Separator />
             <CardContent className="pt-6">
               <Tabs defaultValue="records" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="records" className="text-xs">
                     <FileText className="w-3 h-3 mr-1" />
                     Records
@@ -248,6 +258,10 @@ export default function DoctorDashboard({
                   <TabsTrigger value="schedule" className="text-xs">
                     <Calendar className="w-3 h-3 mr-1" />
                     Schedule
+                  </TabsTrigger>
+                  <TabsTrigger value="facilities" className="text-xs">
+                    <MapPin className="w-3 h-3 mr-1" />
+                    Facilities
                   </TabsTrigger>
                 </TabsList>
 
@@ -317,6 +331,7 @@ export default function DoctorDashboard({
                         <Label className="text-xs">Date</Label>
                         <input
                           type="date"
+                          aria-label="Appointment Date"
                           value={newAppointment.date}
                           onChange={(e) =>
                             setNewAppointment({ ...newAppointment, date: e.target.value })
@@ -328,6 +343,7 @@ export default function DoctorDashboard({
                         <Label className="text-xs">Time</Label>
                         <input
                           type="time"
+                          aria-label="Appointment Time"
                           value={newAppointment.time}
                           onChange={(e) =>
                             setNewAppointment({ ...newAppointment, time: e.target.value })
@@ -372,11 +388,33 @@ export default function DoctorDashboard({
                     )}
                   </div>
                 </TabsContent>
+
+                <TabsContent value="facilities" className="mt-4">
+                  <NearbyFacilitiesMap />
+                </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {/* AI Assistant Section */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            AI Health Assistant
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">Get AI-powered insights and support for patient care</p>
+        </CardHeader>
+        <CardContent>
+          {userId ? (
+            <AIChatbot userId={userId} />
+          ) : (
+            <p className="text-center py-8 text-muted-foreground">Sign in to use AI assistant features</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

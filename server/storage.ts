@@ -215,7 +215,7 @@ export class MemStorage implements IStorage {
       weight: insertPatient.weight ?? 0,
       medicalConditions: insertPatient.medicalConditions ?? [],
       allergies: insertPatient.allergies ?? [],
-      emergencyContact: insertPatient.emergencyContact ?? { name: "", phone: "", relation: "" },
+      emergencyContact: (insertPatient.emergencyContact as any) ?? { name: "", phone: "", relation: "", email: undefined },
     };
     this.patients.set(id, patient);
     return patient;
@@ -224,7 +224,7 @@ export class MemStorage implements IStorage {
   async updatePatient(id: string, patientData: Partial<InsertPatient>): Promise<Patient | undefined> {
     const patient = this.patients.get(id);
     if (!patient) return undefined;
-    const updated = { ...patient, ...patientData };
+    const updated: Patient = { ...patient, ...patientData as Partial<Patient> };
     this.patients.set(id, updated);
     return updated;
   }
@@ -546,52 +546,103 @@ export class MemStorage implements IStorage {
     return true;
   }
 
+  // Simple OTP storage - keyed by ABHA ID
+  private otpStore2: Map<string, { otp: string; expiresAt: Date; attempts: number; email: string }> = new Map();
+
   // New OTP Record Methods
   async createOTPRecord(otpData: InsertOtpRecord): Promise<OtpRecord> {
     const id = randomUUID();
+    const abhaId = (otpData.abhaId || "").trim();
+    const email = (otpData.email || "").trim();
+    
     const record: OtpRecord = {
       id,
-      ...otpData,
+      email,
+      phone: otpData.phone || "",
+      abhaId,
+      otp: otpData.otp,
+      channel: otpData.channel,
+      expiresAt: otpData.expiresAt,
       verified: false,
       attempts: 0,
       createdAt: new Date(),
     };
+    
     this.otpRecords.set(id, record);
+    this.otpStore2.set(abhaId, {
+      otp: otpData.otp,
+      expiresAt: otpData.expiresAt,
+      attempts: 0,
+      email,
+    });
+    
+    console.error(`[OTP] CREATE: abhaId=${abhaId}, email=${email}, otp=${otpData.otp}, expires=${otpData.expiresAt.toISOString()}`);
     return record;
   }
 
   async getOTPRecord(email: string, phone: string, abhaId: string): Promise<OtpRecord | undefined> {
-    // Match only on email and abhaId (phone-independent for email-only OTP)
-    return Array.from(this.otpRecords.values()).find(
-      (r) => r.email === email && r.abhaId === abhaId && !r.verified && r.expiresAt > new Date()
-    );
+    const normalizedAbhaId = (abhaId || "").trim();
+    
+    // Get from simple cache by ABHA ID
+    const cached = this.otpStore2.get(normalizedAbhaId);
+    if (cached) {
+      console.error(`[OTP] GET: Found for ${normalizedAbhaId}, expired=${cached.expiresAt < new Date()}`);
+      
+      if (cached.expiresAt < new Date()) {
+        console.error(`[OTP] GET: Record expired, removing`);
+        this.otpStore2.delete(normalizedAbhaId);
+        return undefined;
+      }
+      
+      // Find the matching record in otpRecords to return full OtpRecord
+      const fullRecord = Array.from(this.otpRecords.values()).find(
+        r => r.abhaId === normalizedAbhaId
+      );
+      
+      if (fullRecord) {
+        console.error(`[OTP] GET: Returning full record`);
+        return fullRecord;
+      }
+    }
+    
+    console.error(`[OTP] GET: No record found for ${normalizedAbhaId}`);
+    return undefined;
   }
 
   async verifyOTPRecord(email: string, phone: string, abhaId: string, otp: string): Promise<boolean> {
-    const record = await this.getOTPRecord(email, phone, abhaId);
-    if (!record) return false;
+    const normalizedAbhaId = (abhaId || "").trim();
+    
+    console.error(`[OTP] VERIFY: abhaId=${normalizedAbhaId}, otp=${otp}`);
+    
+    const cached = this.otpStore2.get(normalizedAbhaId);
+    if (!cached) {
+      console.error(`[OTP] VERIFY: No record found`);
+      return false;
+    }
 
     // Check expiry
-    if (record.expiresAt < new Date()) {
+    if (cached.expiresAt < new Date()) {
+      console.error(`[OTP] VERIFY: Expired`);
+      this.otpStore2.delete(normalizedAbhaId);
       return false;
     }
 
     // Check attempts
-    if (record.attempts >= 3) {
+    if (cached.attempts >= 3) {
+      console.error(`[OTP] VERIFY: Too many attempts`);
       return false;
     }
 
     // Check OTP
-    if (record.otp !== otp) {
-      // Increment attempts
-      const updated = { ...record, attempts: record.attempts + 1 };
-      this.otpRecords.set(record.id, updated);
+    if (cached.otp !== otp) {
+      console.error(`[OTP] VERIFY: Mismatch - expected ${cached.otp}, got ${otp}`);
+      cached.attempts++;
       return false;
     }
 
-    // Mark as verified
-    const verified = { ...record, verified: true };
-    this.otpRecords.set(record.id, verified);
+    // Success - clear the record
+    console.error(`[OTP] VERIFY: ✅ SUCCESS`);
+    this.otpStore2.delete(normalizedAbhaId);
     return true;
   }
 

@@ -480,103 +480,132 @@ export async function chatWithHealthAssistant(
   }
 ): Promise<string> {
   try {
-    // Mock AI responses - provides intelligent healthcare advice without API key
-    const mockResponses: { [key: string]: string[] } = {
-      diabetes: [
-        "For diabetes management, I recommend: 1) Regular blood sugar monitoring (fasting and post-meal), 2) A balanced diet low in refined sugars, 3) At least 150 minutes of moderate exercise weekly, 4) Take your medications exactly as prescribed. Have you checked your blood sugar levels today?",
-        "Diabetes management focuses on three pillars: diet, exercise, and medication compliance. Try to include high-fiber foods, limit sugar intake, and stay physically active. Your current medications appear appropriate - discuss any concerns with your doctor.",
-        "I see you have diabetes. Key recommendations: Monitor your feet daily for any cuts or sores, maintain regular check-ups, keep a food diary to track your diet, and exercise regularly. What specific aspect would you like to discuss?",
-      ],
-      blood: [
-        "Blood pressure management is crucial for your health. Reduce sodium intake, exercise regularly, manage stress through meditation or yoga, and take your medications consistently. What's your typical blood pressure reading?",
-        "For hypertension, try these lifestyle changes: limit salt to less than 2.3g daily, exercise 30 minutes most days, maintain a healthy weight, reduce alcohol, and manage stress. Regular monitoring is essential.",
-      ],
-      heart: [
-        "Heart health can be improved by: regular cardiovascular exercise, managing risk factors like blood pressure and cholesterol, eating heart-healthy foods (omega-3 rich), avoiding smoking, and managing stress. Consider consulting a cardiologist.",
-        "Cardiac health requires attention to: cholesterol levels, blood pressure control, regular exercise, a heart-healthy diet (Mediterranean diet is excellent), and stress management. Have you had recent heart tests?",
-      ],
-      exercise: [
-        "Exercise recommendations depend on your health status, but generally: start with 30 minutes of moderate activity 5 days a week, include both cardio and strength training, and gradually increase intensity. Consult your doctor before starting new exercise routines.",
-        "Physical activity is vital. I recommend: daily walks, swimming, yoga, or cycling. Start slowly and build up. Combine cardio (heart health) with strength training (muscle maintenance). Rest days are important too.",
-      ],
-      medicine: [
-        "Regarding your medications: take them exactly as prescribed, at the same time each day if possible. Don't skip doses, and report any side effects to your doctor. Keep all medications stored properly and maintain a current list.",
-        "Medication adherence is crucial. Set reminders on your phone, use a pill organizer, and keep track of your medications. If you experience side effects, consult your doctor - don't stop taking medications without guidance.",
-      ],
-      appointment: [
-        "I'd recommend scheduling a follow-up appointment with your doctor: 1) If symptoms persist or worsen, 2) For regular check-ups (typically yearly), 3) When refilling prescriptions, 4) For preventive health screenings. Would you like help finding a specialist?",
-        "Regular appointments help monitor your health. Schedule: annual physical exams, routine screenings based on age/risk, and follow-ups for chronic conditions. Maintain a health record to track all appointments.",
-      ],
-      default: [
-        "I'm Dr. Sathi AI, your healthcare assistant. I can help with: medication reminders, health tips, exercise advice, appointment scheduling, and general healthcare questions. What would you like to discuss?",
-        "Based on your health profile, I'm here to provide personalized health guidance. I can help with: diabetes management, blood pressure control, exercise recommendations, medication information, and preventive health tips. How can I assist you?",
-        "As your AI health companion, I provide evidence-based healthcare recommendations. I can discuss your health conditions, suggest lifestyle changes, explain medications, and help you track your health. What's on your mind?",
-      ],
+    const currentLanguage = language || 'en';
+    
+    // Validate medical query
+    const medicalKeywords = {
+      en: ['symptom', 'disease', 'illness', 'pain', 'fever', 'cough', 'cold', 'allergy', 'diabetes', 'blood', 'heart', 'medication', 'medicine', 'treatment', 'diet', 'exercise', 'yoga', 'ayurveda', 'homeopathy', 'health'],
+      hi: ['रोग', 'बीमारी', 'दर्द', 'दवा', 'औषधि', 'स्वास्थ्य', 'आयुर्वेद', 'होम्योपैथी'],
+      mr: ['रोग', 'आजार', 'दर्द', 'औषध', 'आरोग्य', 'आयुर्वेद', 'होम्योपॅथी']
     };
 
-    // Find matching response category
     const messageLC = userMessage.toLowerCase();
-    let category = "default";
-    
-    if (messageLC.includes("diabetes") || messageLC.includes("blood sugar") || messageLC.includes("glucose")) {
-      category = "diabetes";
-    } else if (messageLC.includes("blood pressure") || messageLC.includes("hypertension") || messageLC.includes("bp")) {
-      category = "blood";
-    } else if (messageLC.includes("heart") || messageLC.includes("cardiac") || messageLC.includes("cholesterol")) {
-      category = "heart";
-    } else if (messageLC.includes("exercise") || messageLC.includes("workout") || messageLC.includes("walk")) {
-      category = "exercise";
-    } else if (messageLC.includes("medicine") || messageLC.includes("medication") || messageLC.includes("drug")) {
-      category = "medicine";
-    } else if (messageLC.includes("appointment") || messageLC.includes("doctor") || messageLC.includes("schedule")) {
-      category = "appointment";
+    const keywords = (medicalKeywords as any)[currentLanguage] || medicalKeywords.en;
+    const isMedicalQuery = keywords.some(kw => messageLC.includes(kw));
+
+    // Rejection messages
+    const rejectionMessages = {
+      en: "I'm Dr. Sathi AI, specialized in medical and health topics. Please ask about: diseases, symptoms, medications, Ayurveda, Homeopathy, nutrition, diet, exercise, wellness, and healthcare.",
+      hi: "मैं डॉ. साठी एआई हूँ, केवल चिकित्सा और स्वास्थ्य विषयों में विशेषज्ञ हूँ। कृपया रोग, लक्षण, दवाएं, आयुर्वेद, होम्योपैथी, आहार या व्यायाम के बारे में पूछें।",
+      mr: "मी डॉ. साठी एआई आहे, केवळ वैद्यकीय विषयांमध्ये विशेषज्ञ. कृपया रोग, लक्षण, औषधे, आयुर्वेद, होम्योपॅथी किंवा आहारबद्दल विचारा."
+    };
+
+    if (!isMedicalQuery && messageLC.length > 5) {
+      return (rejectionMessages as any)[currentLanguage] || rejectionMessages.en;
     }
 
-    // Select random response from category
-    const responses = mockResponses[category] || mockResponses["default"];
-    const response = responses[Math.floor(Math.random() * responses.length)];
-
+    // Use Gemini API if available
     if (aiClient && useGemini) {
-      // Try real Gemini API if available
-      const languages = {
-        en: "English",
-        hi: "Hindi",
-        mr: "Marathi",
-      };
-
-      let systemPrompt = (SYSTEM_PROMPTS as any)[language] || (SYSTEM_PROMPTS as any)["en"];
-      
-      if (patientContext) {
-        systemPrompt += `\n\nPatient Context:
-- Name: ${patientContext.name || "Unknown"}
-- Age: ${patientContext.age || "Unknown"}
-- Gender: ${patientContext.gender || "Unknown"}
-- Medical Conditions: ${patientContext.medicalConditions?.join(", ") || "None"}
-- Current Medications: ${patientContext.currentMedications?.join(", ") || "None"}
-- Allergies: ${patientContext.allergies?.join(", ") || "None"}`;
-      }
-
-      let conversationHistory = systemPrompt + "\n\n";
-      chatHistory.forEach((msg) => {
-        conversationHistory += `${msg.role === "user" ? "User" : "Assistant"}: ${msg.message}\n`;
-      });
-      conversationHistory += `User: ${userMessage}\nAssistant:`;
-
       try {
-        const result = await aiClient.generateContent(conversationHistory);
-        const aiResponse = await result.response;
-        return aiResponse.text() || response;
-      } catch (apiError) {
-        console.log("Gemini API failed, using mock response:", apiError);
-        return response;
+        let systemPrompt = (SYSTEM_PROMPTS as any)[currentLanguage] || (SYSTEM_PROMPTS as any)['en'];
+        systemPrompt += `\n\nIMPORTANT: Respond ONLY in ${currentLanguage === 'en' ? 'ENGLISH' : currentLanguage === 'hi' ? 'HINDI' : 'MARATHI'}. Do not mix languages.`;
+        
+        if (patientContext) {
+          systemPrompt += `\n\nPatient Context:
+Name: ${patientContext.name || 'Unknown'}, Age: ${patientContext.age || 'Unknown'}, Gender: ${patientContext.gender || 'Unknown'}
+Conditions: ${patientContext.medicalConditions?.join(', ') || 'None'}
+Allergies: ${patientContext.allergies?.join(', ') || 'None'}`;
+        }
+
+        const messages = [
+          ...chatHistory.map(msg => ({
+            role: msg.role === 'user' ? 'user' as const : 'assistant' as const,
+            parts: [{ text: msg.message }]
+          })),
+          {
+            role: 'user' as const,
+            parts: [{ text: userMessage }]
+          }
+        ];
+
+        const result = await aiClient.generateContent({
+          contents: messages,
+          systemInstruction: systemPrompt,
+        });
+
+        const aiResponse = result.response.text();
+        return aiResponse || "Unable to generate response";
+      } catch (apiError: any) {
+        console.warn("Gemini API error:", apiError.message);
       }
     }
 
-    // Return mock response as fallback or primary
-    return response;
+    // Use OpenAI if available
+    if (aiClient && !useGemini) {
+      try {
+        let systemPrompt = (SYSTEM_PROMPTS as any)[currentLanguage] || (SYSTEM_PROMPTS as any)['en'];
+        systemPrompt += `\n\nIMPORTANT: Respond ONLY in ${currentLanguage === 'en' ? 'ENGLISH' : currentLanguage === 'hi' ? 'HINDI' : 'MARATHI'}. Do not mix languages.`;
+        
+        if (patientContext) {
+          systemPrompt += `\n\nPatient Info: ${patientContext.name}, Age ${patientContext.age}, Conditions: ${patientContext.medicalConditions?.join(', ') || 'None'}`;
+        }
+
+        const response = await aiClient.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: [
+            { role: 'system', content: systemPrompt },
+            ...chatHistory.map(msg => ({
+              role: msg.role as 'user' | 'assistant',
+              content: msg.message
+            })),
+            { role: 'user', content: userMessage }
+          ],
+          temperature: 0.7,
+          max_tokens: 500,
+        });
+
+        const aiResponse = response.choices[0].message.content;
+        return aiResponse || "Unable to generate response";
+      } catch (apiError: any) {
+        console.warn("OpenAI API error:", apiError.message);
+      }
+    }
+
+    // Fallback: Generate contextual response based on query type
+    const fallbackResponses = {
+      en: {
+        greeting: "Hello! I'm Dr. Sathi AI. I'm here to help with your health questions about diseases, medications, Ayurveda, Homeopathy, diet, and wellness. What can I help you with?",
+        default: "I can help you with health advice. Please ask about symptoms, treatments, Ayurveda, Homeopathy, diet, exercise, or any health concern.",
+        error: "I'm currently experiencing some difficulty. Please try again or consult a healthcare professional for urgent concerns."
+      },
+      hi: {
+        greeting: "नमस्ते! मैं डॉ. साठी एआई हूँ। मैं रोग, दवाएं, आयुर्वेद, होम्योपैथी, आहार और स्वास्थ्य के बारे में आपकी मदद कर सकता हूँ। आप क्या जानना चाहते हैं?",
+        default: "मैं आपके स्वास्थ्य सवालों में मदद कर सकता हूँ। कृपया लक्षण, उपचार, आयुर्वेद, होम्योपैथी या आहार के बारे में पूछें।",
+        error: "मुझे कुछ कठिनाई हो रही है। कृपया फिर से प्रयास करें या तत्काल चिकित्सा सहायता के लिए डॉक्टर से मिलें।"
+      },
+      mr: {
+        greeting: "नमस्कार! मी डॉ. साठी एआई आहे. मी रोग, औषधे, आयुर्वेद, होम्योपॅथी, आहार आणि आरोग्य संबंधी आपली मदत करू शकते. तुम्हाला काय मदत करायची आहे?",
+        default: "मी आपल्या आरोग्य प्रश्नांमध्ये मदत करू शकते. कृपया लक्षण, उपचार, आयुर्वेद, होम्योपॅथी किंवा आहारबद्दल विचारा.",
+        error: "मला काही अडचण येत आहे. कृपया पुन्हा प्रयत्न करा किंवा तातडीने वैद्यकीय सहायतेसाठी डॉक्टरला भेट द्या."
+      }
+    };
+
+    const responses = (fallbackResponses as any)[currentLanguage] || fallbackResponses.en;
+    
+    if (messageLC.length < 3) {
+      return responses.greeting;
+    }
+    
+    return responses.default;
   } catch (error) {
-    console.error("Health assistant chat failed:", error);
-    return "I'm here to help with your health. Could you please rephrase your question? I can assist with: medications, exercise, diet, health conditions, and appointment scheduling.";
+    console.error("Health assistant error:", error);
+    const lang = language || 'en';
+    const errorMsg = {
+      en: "I encountered an error. Please try again or consult a healthcare professional.",
+      hi: "मुझे एक त्रुटि हुई। कृपया फिर से प्रयास करें या किसी स्वास्थ्य पेशेवर से परामर्श लें।",
+      mr: "मला एक त्रुटि आली. कृपया पुन्हा प्रयत्न करा किंवा स्वास्थ्य व्यावसायिकांचा सल्ला घ्या."
+    };
+    return (errorMsg as any)[lang] || errorMsg.en;
   }
 }
 

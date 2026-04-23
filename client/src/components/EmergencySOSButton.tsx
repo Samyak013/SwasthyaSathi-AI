@@ -71,9 +71,9 @@ export default function EmergencySOSButton({ patientName, userId, abhaId, onActi
 
       return response;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: any) => {
       setActivated(true);
-      onActivateSOS?.(data.id);
+      onActivateSOS?.(data?.id || "sos-alert");
 
       toast({
         title: "🚨 SOS Alert Activated!",

@@ -26,10 +26,16 @@ export default function EmergencyResponseDashboard({ doctorId }: { doctorId: str
   const { data: alerts = [], isLoading } = useQuery({
     queryKey: ["emergency-alerts"],
     queryFn: async () => {
-      const response = await apiRequest("GET", "/api/emergency/active");
-      return response as EmergencyAlert[];
+      try {
+        const response = await apiRequest("GET", "/api/emergency/active");
+        return Array.isArray(response) ? response : [];
+      } catch (error) {
+        console.error("Error fetching alerts:", error);
+        return [];
+      }
     },
     refetchInterval: 5000, // Auto-refresh every 5 seconds
+    enabled: !!doctorId, // Only fetch if doctorId exists
   });
 
   // Mutation to resolve alert

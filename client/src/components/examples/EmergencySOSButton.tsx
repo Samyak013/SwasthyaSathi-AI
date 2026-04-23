@@ -6,6 +6,7 @@ export default function EmergencySOSButtonExample() {
       <EmergencySOSButton
         patientName="Priya Sharma"
         abhaId="22-1111-2222-3333"
+        userId="user-123"
         onActivateSOS={() => console.log("SOS ACTIVATED")}
       />
     </div>

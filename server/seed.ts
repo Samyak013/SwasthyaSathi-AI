@@ -33,7 +33,7 @@ export async function seedDatabase() {
   const patient1User = await storage.createUser({
     abhaId: "22-1111-2222-3333",
     name: "Priya Sharma",
-    email: "samyak@acpce.ac.in",
+    email: "sachinshinde@acpce.ac.in",
     phone: "+91-9123456780",
     dateOfBirth: "1992-07-20",
     gender: "Female",
@@ -51,6 +51,7 @@ export async function seedDatabase() {
     emergencyContact: {
       name: "Amit Sharma",
       phone: "+91-9123456781",
+      email: "swayam@acpce.ac.in",
       relation: "Husband",
     },
   });
@@ -76,6 +77,7 @@ export async function seedDatabase() {
     emergencyContact: {
       name: "Sunita Patel",
       phone: "+91-9234567891",
+      email: "divyesh@acpce.ac.in",
       relation: "Wife",
     },
   });
